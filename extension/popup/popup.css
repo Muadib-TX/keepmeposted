@@ -43,11 +43,20 @@ h3 {
 #freshnessStatus,
 #reliabilityScore,
 #reliabilityLabel,
+#domain,
 #freshnessExplanation,
 #reliabilityExplanation {
   margin: 6px 0;
   font-size: 14px;
   line-height: 1.4;
+}
+
+#topicsList,
+#followUpsList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 button {

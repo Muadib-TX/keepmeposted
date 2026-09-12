@@ -34,6 +34,66 @@ function normalizeDomain(domain) {
   return String(domain || '').replace(/^www\./, '').toLowerCase();
 }
 
+function buildTopics(article) {
+  const combinedText = `${article.title || ''} ${article.mainText || ''}`.toLowerCase();
+  const words = combinedText.match(/[a-z0-9]{4,}/g) || [];
+  const stopWords = new Set([
+    'about', 'after', 'again', 'against', 'all', 'also', 'because', 'been', 'before', 'being', 'between',
+    'from', 'have', 'into', 'more', 'most', 'other', 'over', 'same', 'some', 'such', 'that', 'their',
+    'them', 'then', 'there', 'these', 'they', 'this', 'those', 'through', 'under', 'very', 'were', 'what',
+    'when', 'where', 'which', 'while', 'with', 'would', 'your', 'article', 'story', 'news', 'said', 'will'
+  ]);
+
+  const counts = new Map();
+
+  words.forEach((word) => {
+    if (stopWords.has(word)) {
+      return;
+    }
+
+    counts.set(word, (counts.get(word) || 0) + 1);
+  });
+
+  const topics = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([label, count], index) => ({
+      label: label.charAt(0).toUpperCase() + label.slice(1),
+      confidence: Math.min(0.95, 0.55 + (count * 0.08) + index * 0.05)
+    }));
+
+  return topics.length ? topics : [{ label: 'General news', confidence: 0.5 }];
+}
+
+function buildFollowUps(article, topics) {
+  const headline = article.title || 'this article';
+  const topicSuggestions = topics.slice(0, 2).map((topic) => ({
+    type: 'theme',
+    label: `Subscribe to theme: ${topic.label}`,
+    description: `Receive future updates when ${topic.label.toLowerCase()} becomes relevant.`
+  }));
+
+  return [
+    {
+      type: 'article',
+      label: `Subscribe to updates for ${headline}`,
+      description: `Get a future update when ${headline} continues to develop.`
+    },
+    ...topicSuggestions
+  ];
+}
+
+function buildDefaultAnalysis(article) {
+  const topics = buildTopics(article);
+
+  return {
+    freshness: buildFallbackFreshness(article),
+    reliability: buildFallbackReliability(article.domain),
+    topics,
+    followUps: buildFollowUps(article, topics)
+  };
+}
+
 function ensureValidFreshnessObject(freshness) {
   return {
     status: freshness?.status || 'unknown',
@@ -79,18 +139,34 @@ function buildGeminiPrompt(article) {
   return `You are helping build a news freshness checker prototype. Analyze the following article payload and return ONLY valid JSON with this exact structure:
 
 {
-  "status": "fresh" | "stale" | "unknown",
-  "factDate": "YYYY-MM-DD" | null,
-  "explanation": "A short one- or two-sentence explanation"
+  "freshness": {
+    "status": "fresh" | "stale" | "unknown",
+    "factDate": "YYYY-MM-DD" | null,
+    "explanation": "A short one- or two-sentence explanation"
+  },
+  "reliability": {
+    "score": 0,
+    "label": "high" | "medium" | "low",
+    "explanation": "A short rationale for the domain trust score"
+  },
+  "topics": [
+    { "label": "Topic label", "confidence": 0.0 }
+  ],
+  "followUps": [
+    { "type": "article" | "theme", "label": "Action label", "description": "Short description" }
+  ]
 }
 
 Guidance:
 - Identify the primary factual event being reported.
 - Estimate when that event actually occurred.
 - Compare that event date with the article publish date.
-- If the article looks like it is presenting an old event as new, return status: "stale".
-- If the article is current and does not appear stale, return status: "fresh".
-- If the article lacks enough information, return status: "unknown".
+- If the article looks like it is presenting an old event as new, set freshness.status to "stale".
+- If the article is current and does not appear stale, set freshness.status to "fresh".
+- If the article lacks enough information, set freshness.status to "unknown".
+- Extract the top 2–5 themes or topics discussed in the article.
+- Suggest 1–3 practical follow-up actions, including at least one article-level follow-up and one theme-level follow-up when possible.
+- Keep explanations concise and useful for a browser extension popup.
 
 Article payload:
 ${JSON.stringify(article, null, 2)}`;
@@ -153,9 +229,20 @@ async function analyzeWithGemini(article) {
     }
 
     const parsed = JSON.parse(extractJson(rawText));
+    const normalizedFreshness = ensureValidFreshnessObject(parsed?.freshness || parsed);
+    const normalizedReliability = parsed?.reliability || buildFallbackReliability(article.domain);
+    const normalizedTopics = Array.isArray(parsed?.topics) && parsed.topics.length
+      ? parsed.topics
+      : buildTopics(article);
+    const normalizedFollowUps = Array.isArray(parsed?.followUps) && parsed.followUps.length
+      ? parsed.followUps
+      : buildFollowUps(article, normalizedTopics);
+
     return {
-      freshness: ensureValidFreshnessObject(parsed),
-      reliability: buildFallbackReliability(article.domain)
+      freshness: normalizedFreshness,
+      reliability: normalizedReliability,
+      topics: normalizedTopics,
+      followUps: normalizedFollowUps
     };
   } catch (error) {
     console.error('Gemini integration failed:', error.message);
@@ -166,6 +253,7 @@ async function analyzeWithGemini(article) {
 async function buildResponse(article) {
   const canonicalUrl = String(article.canonicalUrl || article.domain || '').toLowerCase();
   const matchedPattern = MOCK_DATA.patterns.find((pattern) => canonicalUrl.includes(pattern.match.toLowerCase()));
+  const defaultAnalysis = buildDefaultAnalysis(article);
 
   if (GEMINI_API_KEY) {
     const geminiAnalysis = await analyzeWithGemini(article);
@@ -178,14 +266,13 @@ async function buildResponse(article) {
   if (matchedPattern) {
     return {
       freshness: matchedPattern.freshness,
-      reliability: matchedPattern.reliability
+      reliability: matchedPattern.reliability,
+      topics: defaultAnalysis.topics,
+      followUps: defaultAnalysis.followUps
     };
   }
 
-  return {
-    freshness: buildFallbackFreshness(article),
-    reliability: buildFallbackReliability(article.domain)
-  };
+  return defaultAnalysis;
 }
 
 const server = http.createServer((req, res) => {

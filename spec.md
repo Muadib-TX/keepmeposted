@@ -6,11 +6,11 @@
 
 ## 1. Objective
 
-Build a Chrome browser extension (Manifest V3) prototype that ambiently analyzes news articles as the user browses and displays two signals in the toolbar badge:
+Build a Chrome browser extension (Manifest V3) prototype that ambiently analyzes news articles as the user browses and surfaces three signals in the toolbar badge and popup:
 
 1. **Freshness**: whether the article's core facts are current or the article is re-surfacing an old event without saying so.
 2. **Reliability**: a coarse trust signal about the source/domain.
-3.**Follow-up on topic** after analyzing the article, extract the most important themes or topics and propose the user to subscribe to a future update of the article or to subscribe to one of the chosen theme or story.
+3. **Topic follow-up**: after analyzing the article, extract the most important themes or topics and suggest a follow-up action such as subscribing to updates for the article or for a highlighted theme/story.
 
 The extension must work with **zero user interaction required** for the base signal (badge updates automatically on page load) and reveal detail on click.
 
@@ -21,9 +21,9 @@ This is a **prototype**, not a production system. Prioritize a working end-to-en
 ## 2. Core User Flow
 
 1. User navigates to any web page in Chrome.
-2. Extension's content script + background service worker silently determine whether the page is a "news article" (see Section 4.1).
-3. If yes: extract the article's text + metadata → send to the analysis pipeline (Section 4.2) → receive `{freshness, reliability}` → update the toolbar badge (Section 4.3).
-4. If the user clicks the toolbar icon: open a popup showing the detailed breakdown (Section 4.4).
+2. The extension's content script + background service worker silently determine whether the page is a news article (see Section 4.1).
+3. If yes: extract article text + metadata → send the payload to the analysis pipeline (Section 4.2) → receive `{freshness, reliability, topics, followUps}` → update the toolbar badge (Section 4.3).
+4. If the user clicks the toolbar icon: open a popup showing the detailed breakdown plus topic follow-up suggestions (Section 4.4).
 5. No modal, no page injection, no interruption to reading — badge-only ambient signal, popup-only detail.
 
 ---
@@ -61,7 +61,7 @@ Data flow: `content script (extract) → background worker (orchestrate + cache)
 
 Run cheaply and locally — **do not call the backend for pages that clearly aren't articles.**
 
-Detect "this is an article" if **any** of the following match:
+Detect "this is an article" if any of the following match:
 - `document.querySelector('script[type="application/ld+json"]')` contains `"@type": "NewsArticle"` or `"@type": "Article"`.
 - `<meta property="og:type" content="article">` is present.
 - A `<article>` tag exists with more than ~400 characters of text content.
@@ -72,7 +72,7 @@ Extract on match:
 - `publishDate` (from JSON-LD `datePublished`, `<meta property="article:published_time">`, or fallback: first ISO-8601-looking date string in the page)
 - `mainText` (innerText of `<article>` or the largest text block on the page — use a simple readability heuristic: largest `<div>`/`<section>` by paragraph count)
 - `domain` (`location.hostname`)
-- `canonicalUrl` (`<link rel="canonical">` href, or current URL stripped of query params if absent)
+- `canonicalUrl` (`<link rel="canonical">`, or current URL stripped of query params if absent)
 
 Send `{title, publishDate, mainText, domain, canonicalUrl}` to the background worker via `chrome.runtime.sendMessage`.
 
@@ -84,6 +84,11 @@ Send `{title, publishDate, mainText, domain, canonicalUrl}` to the background wo
 2. Store the response in `chrome.storage.local` keyed by `canonicalUrl`.
 3. Trigger badge update (4.3) and make the result available to the popup (4.4).
 4. Handle failure gracefully: on network error or timeout (>5s), set badge to a neutral "unknown" state — never block or show an error to the user.
+5. When the backend responds, the payload should include all of the following:
+   - `freshness` (status, factDate, explanation)
+   - `reliability` (score, label, explanation)
+   - `topics` (top themes extracted from the article; use 2–5 concise labels)
+   - `followUps` (suggested next actions such as "Subscribe to future updates on this article" and "Subscribe to theme: X")
 
 ### 4.3 Badge Logic (`badge.js`)
 
@@ -104,8 +109,10 @@ Use `chrome.action.setBadgeText` and `chrome.action.setBadgeBackgroundColor`, sc
 
 On click, show:
 - Article title + detected publish date.
-- **Freshness section**: the "fact date" the model extracted (if different from publish date) and a one-line explanation (e.g., "This article was published today but references an event from March 2024").
+- **Freshness section**: the "fact date" the model extracted (if different from publish date) and a one-line explanation.
 - **Reliability section**: a 0–100 score plus 1–2 sentence rationale, and the domain it was scored against.
+- **Topics section**: up to 3–5 most relevant themes extracted from the article.
+- **Follow-up actions section**: a list of suggested next actions, such as subscribing to updates for the article or one of the highlighted themes.
 - A "Report incorrect" button (stub — just `console.log` the feedback for the prototype, no need to wire a real feedback pipeline).
 
 Keep this to a single scrollable popup, ~360px wide, no additional navigation.
@@ -129,25 +136,34 @@ Response: {
     score: 0-100,
     label: "high" | "medium" | "low",
     explanation: string
-  }
+  },
+  topics: [
+    { label: string, confidence: 0-1 }
+  ],
+  followUps: [
+    { type: "article" | "theme", label: string, description: string }
+  ]
 }
 ```
 
 For the prototype:
 - `reliability` can be computed from a **hardcoded domain reputation table** (~20 entries covering major outlets across the trust spectrum, e.g. wire services = high, known-low-quality domains = low, everything else = medium/unknown). No need for a real scoring model.
-- `freshness` can call an LLM (Claude via the Anthropic API) with a prompt like: *"Given this article title, publish date, and text, identify the primary factual event being reported and estimate when that event actually occurred. Compare to the publish date and flag if the article is presenting an old event as new. Respond in JSON: {factDate, status, explanation}."* This is the one place real intelligence is worth wiring up even in the prototype, since it's the core value proposition.
+- `freshness` can call a Gemini API (preferred for this prototype), or a mock/fallback response if no API key is configured. The Gemini path should take the article payload and return JSON shaped like `{status, factDate, explanation}`.
+- `topics` and `followUps` can be produced from a lightweight heuristic or a model prompt. The important part is that the response is structured and usable by the popup.
 - No database needed — in-memory or flat-file caching is fine.
+- Multiple response modes are acceptable as long as they preserve the same JSON contract: mock mode, Gemini mode, and graceful fallback mode.
 
 ---
 
 ## 6. Non-Goals for This Prototype (explicitly out of scope)
 
-- Topic monitoring / alerts / push notifications — separate future milestone, not part of this build.
+- Real push notifications / alerts / topic subscriptions infrastructure — separate future milestone, not part of this build.
 - Firefox/Safari support — Chrome (Manifest V3) only.
 - User accounts, auth, or sync across devices.
 - Production-grade crawler or pre-computed cache warming — on-demand analysis only.
 - Sophisticated readability/extraction library (e.g., full Mozilla Readability port) — the heuristics in 4.1 are sufficient.
 - Styling polish beyond a clean, readable popup.
+- A real backend system for article/topic subscriptions — the prototype only needs to surface suggested follow-up actions.
 
 ---
 
@@ -155,10 +171,11 @@ For the prototype:
 
 - [ ] Installing the unpacked extension and visiting a real news article (e.g., a Reuters or AP story) auto-populates the badge within ~3 seconds, no clicks required.
 - [ ] Visiting a non-article page (e.g., google.com) results in no badge.
-- [ ] Clicking the badge on an analyzed page shows the popup with both freshness and reliability sections populated.
+- [ ] Clicking the badge on an analyzed page shows the popup with freshness, reliability, topic, and follow-up sections populated.
 - [ ] Revisiting the same URL within 24 hours does not trigger a new network call (verify via console/network tab).
 - [ ] Killing the backend server and reloading a page results in a neutral badge state, not a broken extension.
 - [ ] Code is organized per the file structure in Section 3, with comments explaining the detection heuristics.
+- [ ] The prototype demonstrates the main objective clearly: ambient article analysis plus suggested follow-up topic actions.
 
 ---
 
@@ -166,8 +183,14 @@ For the prototype:
 
 1. Scaffold `manifest.json` + empty content script/background worker, confirm it loads in `chrome://extensions`.
 2. Implement article detection + extraction (4.1), log results to console — verify on 3–5 real news sites before moving on.
-3. Stand up the backend stub with hardcoded/mocked responses (5), no LLM call yet — verify the full request/response loop.
+3. Stand up the backend stub with hardcoded/mocked responses (5), and include the `topics` + `followUps` fields even in mock mode.
 4. Wire badge updates (4.3) end-to-end using the mocked backend.
-5. Build the popup (4.4).
-6. Swap the mocked freshness response for a real Claude API call.
+5. Build the popup (4.4), including the topic follow-up panel.
+6. Add Gemini-backed freshness analysis and keep the mock response as a fallback.
 7. Add caching (4.2) and failure handling last.
+
+---
+
+## 9. Notes for Optimization
+
+This version is optimized for the stated objective by making the follow-up topic workflow explicit and by aligning the backend response schema with the full value proposition. In other words, the prototype is not only measuring freshness and reliability — it is also surfacing the most relevant story themes and suggesting next actions in a lightweight, testable way.
