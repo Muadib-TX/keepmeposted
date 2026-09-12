@@ -1,0 +1,9 @@
+{
+  "name": "freshness-reliability-extension-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start:backend": "node backend/server.js",
+    "check": "node --check backend/server.js && node --check extension/background/service-worker.js && node --check extension/content/detector.js && node --check extension/lib/articleDetector.js && node --check extension/lib/analysisClient.js && node --check extension/lib/badge.js && node --check extension/popup/popup.js"
+  }
+}

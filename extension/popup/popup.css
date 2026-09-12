@@ -1,0 +1,67 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f7fb;
+}
+
+.popup {
+  width: 360px;
+  min-height: 300px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #dfe6ee;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 12px;
+}
+
+.meta {
+  margin-bottom: 6px;
+}
+
+#publishDate,
+#factDate,
+#freshnessStatus,
+#reliabilityScore,
+#reliabilityLabel,
+#freshnessExplanation,
+#reliabilityExplanation {
+  margin: 6px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+button {
+  margin-top: 16px;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  padding: 10px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.hidden {
+  display: none;
+}

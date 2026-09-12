@@ -1,0 +1,108 @@
+{
+  "patterns": [
+    {
+      "match": "reuters.com",
+      "freshness": {
+        "status": "fresh",
+        "factDate": "2026-09-12",
+        "explanation": "The article appears to report a current event, and the publication date aligns with the story being framed as new."
+      },
+      "reliability": {
+        "score": 90,
+        "label": "high",
+        "explanation": "Reuters is represented in the prototype as a high-reliability wire service with strong editorial standards."
+      }
+    },
+    {
+      "match": "apnews.com",
+      "freshness": {
+        "status": "fresh",
+        "factDate": "2026-09-12",
+        "explanation": "This AP story was published today and appears to be covering an active event rather than resurfacing older news."
+      },
+      "reliability": {
+        "score": 88,
+        "label": "high",
+        "explanation": "The Associated Press is treated as a high-trust source in this prototype."
+      }
+    },
+    {
+      "match": "nytimes.com",
+      "freshness": {
+        "status": "fresh",
+        "factDate": "2026-09-12",
+        "explanation": "The article looks current and does not appear to present an old event as new."
+      },
+      "reliability": {
+        "score": 76,
+        "label": "medium",
+        "explanation": "The New York Times is treated as a generally credible source, but the prototype uses a moderate reliability score for broader coverage."
+      }
+    },
+    {
+      "match": "cnn.com",
+      "freshness": {
+        "status": "fresh",
+        "factDate": "2026-09-12",
+        "explanation": "The article is framed as a current report with no obvious mismatch between publish and factual date."
+      },
+      "reliability": {
+        "score": 68,
+        "label": "medium",
+        "explanation": "CNN is scored as a generally established newsroom, but the prototype marks it as medium reliability rather than fully high trust."
+      }
+    },
+    {
+      "match": "foxnews.com",
+      "freshness": {
+        "status": "fresh",
+        "factDate": "2026-09-12",
+        "explanation": "The article appears current, although the prototype treats its freshness as a standard current-news assessment."
+      },
+      "reliability": {
+        "score": 58,
+        "label": "medium",
+        "explanation": "Fox News is scored as a medium-reliability source in this prototype because its domain reputation is mixed."
+      }
+    },
+    {
+      "match": "breitbart.com",
+      "freshness": {
+        "status": "stale",
+        "factDate": "2025-11-22",
+        "explanation": "This article appears to repackage an older event without clearly updating the context for the current date."
+      },
+      "reliability": {
+        "score": 32,
+        "label": "low",
+        "explanation": "Breitbart is treated as a low-reliability source in the prototype due to known credibility concerns."
+      }
+    },
+    {
+      "match": "infowars.com",
+      "freshness": {
+        "status": "stale",
+        "factDate": "2025-03-01",
+        "explanation": "The story appears to revive an older claim rather than report a newly emerging event."
+      },
+      "reliability": {
+        "score": 12,
+        "label": "low",
+        "explanation": "Infowars is modeled as a low-reliability domain for this prototype."
+      }
+    },
+    {
+      "match": "theonion.com",
+      "freshness": {
+        "status": "unknown",
+        "factDate": null,
+        "explanation": "This is a satire publication, so freshness is not assessed in a conventional news sense."
+      },
+      "reliability": {
+        "score": 10,
+        "label": "low",
+        "explanation": "The Onion is treated as intentionally non-factual satire in this prototype, so it receives a low reliability score."
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Freshness & Reliability</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <h1>Freshness & Reliability</h1>
+      <div id="loading">Loading article analysis…</div>
+      <section id="content" class="hidden">
+        <div class="meta">
+          <h2 id="title">Article</h2>
+          <p id="publishDate"></p>
+        </div>
+
+        <section class="panel">
+          <h3>Freshness</h3>
+          <p id="freshnessStatus"></p>
+          <p id="factDate"></p>
+          <p id="freshnessExplanation"></p>
+        </section>
+
+        <section class="panel">
+          <h3>Reliability</h3>
+          <p id="reliabilityScore"></p>
+          <p id="reliabilityLabel"></p>
+          <p id="reliabilityExplanation"></p>
+        </section>
+
+        <button id="reportButton" type="button">Report incorrect</button>
+      </section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
