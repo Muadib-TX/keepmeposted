@@ -135,6 +135,20 @@ function buildFallbackReliability(domain) {
   };
 }
 
+function normalizeReliability(reliability, domain) {
+  const fallback = buildFallbackReliability(domain);
+
+  if (!reliability || typeof reliability !== 'object') {
+    return fallback;
+  }
+
+  return {
+    score: Number.isInteger(reliability.score) ? reliability.score : fallback.score,
+    label: ['high', 'medium', 'low'].includes(reliability.label) ? reliability.label : fallback.label,
+    explanation: reliability.explanation || fallback.explanation
+  };
+}
+
 function buildGeminiPrompt(article) {
   return `You are helping build a news freshness checker prototype. Analyze the following article payload and return ONLY valid JSON with this exact structure:
 
@@ -230,7 +244,7 @@ async function analyzeWithGemini(article) {
 
     const parsed = JSON.parse(extractJson(rawText));
     const normalizedFreshness = ensureValidFreshnessObject(parsed?.freshness || parsed);
-    const normalizedReliability = parsed?.reliability || buildFallbackReliability(article.domain);
+    const normalizedReliability = normalizeReliability(parsed?.reliability, article.domain);
     const normalizedTopics = Array.isArray(parsed?.topics) && parsed.topics.length
       ? parsed.topics
       : buildTopics(article);
