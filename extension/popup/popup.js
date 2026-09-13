@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const freshnessStatusEl = document.getElementById('freshnessStatus');
   const factDateEl = document.getElementById('factDate');
   const freshnessExplanationEl = document.getElementById('freshnessExplanation');
-  const toggleAlertButton = document.getElementById('toggleAlertButton');
   const alertStatusEl = document.getElementById('alertStatus');
   const reliabilityScoreEl = document.getElementById('reliabilityScore');
   const reliabilityLabelEl = document.getElementById('reliabilityLabel');
@@ -54,26 +53,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         label: topic.label
       }));
 
-  const alertStorage = await chrome.storage.local.get(['story-alerts']);
-  const savedAlerts = Array.isArray(alertStorage['story-alerts']) ? alertStorage['story-alerts'] : [];
   const storyIdentifier = state.article?.canonicalUrl || state.article?.url || state.article?.title || null;
 
-  let existingAlert = storyIdentifier
-    ? savedAlerts.find((alert) => alert.canonicalUrl === storyIdentifier)
-    : null;
+  let savedAlerts = [];
+  let existingAlert = null;
 
-  const updateAlertButton = () => {
+  const updateAlertStatus = () => {
     const isSaved = Boolean(existingAlert);
-    toggleAlertButton.disabled = !storyIdentifier;
-    toggleAlertButton.textContent = isSaved ? 'Remove alert' : 'Add alert';
     alertStatusEl.textContent = isSaved
-      ? 'Alert saved — you will be notified when this story updates.'
-      : 'Save this story as an alert to track updates and new developments.';
+      ? 'You are signed up for updates on this story.'
+      : 'Sign up for updates to get notified about new developments.';
   };
 
-  updateAlertButton();
+  const refreshAlertState = async () => {
+    const alertStorage = await chrome.storage.local.get(['story-alerts']);
+    savedAlerts = Array.isArray(alertStorage['story-alerts']) ? alertStorage['story-alerts'] : [];
+    existingAlert = storyIdentifier
+      ? savedAlerts.find((alert) => alert.canonicalUrl === storyIdentifier)
+      : null;
 
-  toggleAlertButton.addEventListener('click', async () => {
+    updateAlertStatus();
+  };
+
+  const toggleCurrentAlert = async () => {
     if (!storyIdentifier) {
       return;
     }
@@ -93,18 +95,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       await chrome.storage.local.set({ 'story-alerts': nextAlerts });
     }
 
-    const refreshedStorage = await chrome.storage.local.get(['story-alerts']);
-    const refreshedAlerts = Array.isArray(refreshedStorage['story-alerts']) ? refreshedStorage['story-alerts'] : [];
-    const refreshedAlert = refreshedAlerts.find((alert) => alert.canonicalUrl === storyIdentifier);
+    await refreshAlertState();
+  };
 
-    if (refreshedAlert) {
-      existingAlert = refreshedAlert;
-    } else {
-      existingAlert = null;
-    }
-
-    updateAlertButton();
-  });
+  await refreshAlertState();
 
   updateStatusBadge(freshnessStatusEl, freshness.status, 'unknown');
   factDateEl.textContent = freshness.factDate ? `Fact date: ${freshness.factDate}` : 'Fact date: unavailable';
@@ -131,20 +125,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   followUpsListEl.innerHTML = followUps.length
     ? followUps
-        .map(
-          (followUp) =>
-            `<li class="follow-up-item"><button type="button" class="secondary-button follow-up-button" data-followup-type="${followUp.type}">${followUp.label}</button></li>`
-        )
+        .map((followUp) => {
+          const buttonClasses = [
+            'secondary-button',
+            'follow-up-button',
+            followUp.type === 'article' ? 'article-follow-up-button' : ''
+          ]
+            .filter(Boolean)
+            .join(' ');
+
+          return `<li class="follow-up-item ${followUp.type === 'article' ? 'article-follow-up-item' : ''}"><button type="button" class="${buttonClasses}" data-followup-type="${followUp.type}">${followUp.label}</button></li>`;
+        })
         .join('')
     : '<li>No follow-up suggestions available.</li>';
 
   followUpsListEl.querySelectorAll('.follow-up-button').forEach((button) => {
     button.addEventListener('click', async () => {
-      if (!storyIdentifier) {
-        return;
+      if (button.dataset.followupType === 'article') {
+        await toggleCurrentAlert();
       }
-
-      await toggleAlertButton.click();
     });
   });
 

@@ -146,7 +146,7 @@ function buildFollowUps(article, topics) {
   return [
     {
       type: 'article',
-      label: 'Keep me posted'
+      label: 'Follow this story'
     },
     ...topicSuggestions
   ];
