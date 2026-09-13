@@ -1,6 +1,6 @@
 {
   "name": "keep-me-posted",
-  "version": "0.19",
+  "version": "0.20",
   "private": true,
   "scripts": {
     "start:backend": "node backend/server.js",
