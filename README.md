@@ -1,6 +1,6 @@
 # Keep Me Posted
 
-Current package version: 0.17
+Current package version: 0.18
 
 A Chrome Manifest V3 browser extension prototype that ambiently analyzes news articles and shows three signals in the toolbar badge and popup:
 
@@ -40,6 +40,8 @@ A Chrome Manifest V3 browser extension prototype that ambiently analyzes news ar
 #
 
 - 0.17 — test
+
+- 0.18 — Update documentation and package version
 Recent git commit history reflected in this README:
 
 - `7c88bd7` — Remove stale follow-up wording and polish labels
