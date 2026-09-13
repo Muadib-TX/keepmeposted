@@ -7,9 +7,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const freshnessStatusEl = document.getElementById('freshnessStatus');
   const factDateEl = document.getElementById('factDate');
   const freshnessExplanationEl = document.getElementById('freshnessExplanation');
+  const toggleAlertButton = document.getElementById('toggleAlertButton');
+  const alertStatusEl = document.getElementById('alertStatus');
   const reliabilityScoreEl = document.getElementById('reliabilityScore');
   const reliabilityLabelEl = document.getElementById('reliabilityLabel');
   const domainEl = document.getElementById('domain');
+  const ownerNameEl = document.getElementById('ownerName');
+  const ownerTypeEl = document.getElementById('ownerType');
+  const ownerDescriptionEl = document.getElementById('ownerDescription');
   const reliabilityExplanationEl = document.getElementById('reliabilityExplanation');
   const topicsListEl = document.getElementById('topicsList');
   const followUpsListEl = document.getElementById('followUpsList');
@@ -36,6 +41,58 @@ document.addEventListener('DOMContentLoaded', async () => {
   const topics = Array.isArray(state.analysis.topics) ? state.analysis.topics : [];
   const followUps = Array.isArray(state.analysis.followUps) ? state.analysis.followUps : [];
 
+  const alertStorage = await chrome.storage.local.get(['story-alerts']);
+  const savedAlerts = Array.isArray(alertStorage['story-alerts']) ? alertStorage['story-alerts'] : [];
+  const storyIdentifier = state.article?.canonicalUrl || state.article?.url || state.article?.title || null;
+
+  let existingAlert = storyIdentifier
+    ? savedAlerts.find((alert) => alert.canonicalUrl === storyIdentifier)
+    : null;
+
+  const updateAlertButton = () => {
+    const isSaved = Boolean(existingAlert);
+    toggleAlertButton.disabled = !storyIdentifier;
+    toggleAlertButton.textContent = isSaved ? 'Remove alert' : 'Add alert';
+    alertStatusEl.textContent = isSaved
+      ? 'Alert saved — you will be notified when this story updates.'
+      : 'Save this story as an alert to track updates and new developments.';
+  };
+
+  updateAlertButton();
+
+  toggleAlertButton.addEventListener('click', async () => {
+    if (!storyIdentifier) {
+      return;
+    }
+
+    const nextAlerts = savedAlerts.filter((alert) => alert.canonicalUrl !== storyIdentifier);
+
+    if (existingAlert) {
+      await chrome.storage.local.set({ 'story-alerts': nextAlerts });
+    } else {
+      nextAlerts.unshift({
+        canonicalUrl: storyIdentifier,
+        title: state.article?.title || 'Untitled article',
+        domain: state.article?.domain || 'Unknown domain',
+        addedAt: Date.now(),
+        freshnessStatus: freshness.status || 'unknown'
+      });
+      await chrome.storage.local.set({ 'story-alerts': nextAlerts });
+    }
+
+    const refreshedStorage = await chrome.storage.local.get(['story-alerts']);
+    const refreshedAlerts = Array.isArray(refreshedStorage['story-alerts']) ? refreshedStorage['story-alerts'] : [];
+    const refreshedAlert = refreshedAlerts.find((alert) => alert.canonicalUrl === storyIdentifier);
+
+    if (refreshedAlert) {
+      existingAlert = refreshedAlert;
+    } else {
+      existingAlert = null;
+    }
+
+    updateAlertButton();
+  });
+
   freshnessStatusEl.textContent = freshness.status ? `Status: ${freshness.status}` : 'Status: unknown';
   factDateEl.textContent = freshness.factDate ? `Fact date: ${freshness.factDate}` : 'Fact date: unavailable';
   freshnessExplanationEl.textContent = freshness.explanation || 'No explanation supplied.';
@@ -43,6 +100,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   reliabilityScoreEl.textContent = reliability.score !== undefined ? `Score: ${reliability.score}/100` : 'Score: unavailable';
   reliabilityLabelEl.textContent = reliability.label ? `Label: ${reliability.label}` : 'Label: unknown';
   domainEl.textContent = `Domain: ${state.article?.domain || 'Unknown domain'}`;
+  const owner = reliability.owner || {};
+  ownerNameEl.textContent = owner.name ? `Owner: ${owner.name}` : 'Owner: unavailable';
+  ownerTypeEl.textContent = owner.type ? `Owner type: ${owner.type}` : 'Owner type: unavailable';
+  ownerDescriptionEl.textContent = owner.description || 'No owner description available.';
   reliabilityExplanationEl.textContent = reliability.explanation || 'No explanation supplied.';
 
   topicsListEl.innerHTML = topics.length

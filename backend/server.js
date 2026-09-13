@@ -10,14 +10,86 @@ const MOCK_DATA = JSON.parse(
 );
 
 const DOMAIN_REPUTATION = {
-  'reuters.com': { score: 90, label: 'high', explanation: 'Reuters is modeled as a high-reliability wire service.' },
-  'apnews.com': { score: 88, label: 'high', explanation: 'The Associated Press is modeled as a high-reliability source.' },
-  'nytimes.com': { score: 76, label: 'medium', explanation: 'The New York Times is modeled as a generally credible source.' },
-  'cnn.com': { score: 68, label: 'medium', explanation: 'CNN is modeled as a medium-reliability source in this prototype.' },
-  'foxnews.com': { score: 58, label: 'medium', explanation: 'Fox News is modeled as a medium-reliability source in this prototype.' },
-  'breitbart.com': { score: 32, label: 'low', explanation: 'Breitbart is modeled as a low-reliability source for this prototype.' },
-  'infowars.com': { score: 12, label: 'low', explanation: 'Infowars is modeled as a low-reliability source for this prototype.' },
-  'theonion.com': { score: 10, label: 'low', explanation: 'The Onion is modeled as a low-reliability satire source.' }
+  'reuters.com': {
+    score: 90,
+    label: 'high',
+    explanation: 'Reuters is modeled as a high-reliability wire service.',
+    owner: {
+      name: 'Reuters',
+      type: 'Wire service',
+      description: 'Reuters is a major global news wire service with a strong reputation for fast breaking news coverage.'
+    }
+  },
+  'apnews.com': {
+    score: 88,
+    label: 'high',
+    explanation: 'The Associated Press is modeled as a high-reliability source.',
+    owner: {
+      name: 'The Associated Press',
+      type: 'News cooperative',
+      description: 'AP is a nonprofit news cooperative with a long-standing reputation for objective reporting.'
+    }
+  },
+  'nytimes.com': {
+    score: 76,
+    label: 'medium',
+    explanation: 'The New York Times is modeled as a generally credible source.',
+    owner: {
+      name: 'The New York Times Company',
+      type: 'Media company',
+      description: 'The New York Times Company operates a major national and international newsroom with broad editorial resources.'
+    }
+  },
+  'cnn.com': {
+    score: 68,
+    label: 'medium',
+    explanation: 'CNN is modeled as a medium-reliability source in this prototype.',
+    owner: {
+      name: 'Warner Bros. Discovery',
+      type: 'Media conglomerate',
+      description: 'CNN is operated by a large media conglomerate and is treated as a generally established but mixed-reliability source in this prototype.'
+    }
+  },
+  'foxnews.com': {
+    score: 58,
+    label: 'medium',
+    explanation: 'Fox News is modeled as a medium-reliability source in this prototype.',
+    owner: {
+      name: 'Fox Corporation',
+      type: 'Media company',
+      description: 'Fox News is owned by Fox Corporation and is scored as medium reliability because its domain reputation is mixed.'
+    }
+  },
+  'breitbart.com': {
+    score: 32,
+    label: 'low',
+    explanation: 'Breitbart is modeled as a low-reliability source for this prototype.',
+    owner: {
+      name: 'Breitbart News Network',
+      type: 'Independent media outlet',
+      description: 'Breitbart is treated as a low-reliability domain in this prototype because of known credibility concerns.'
+    }
+  },
+  'infowars.com': {
+    score: 12,
+    label: 'low',
+    explanation: 'Infowars is modeled as a low-reliability source for this prototype.',
+    owner: {
+      name: 'InfoWars',
+      type: 'Independent media outlet',
+      description: 'InfoWars is modeled as a low-reliability domain in this prototype because of repeated misinformation concerns.'
+    }
+  },
+  'theonion.com': {
+    score: 10,
+    label: 'low',
+    explanation: 'The Onion is modeled as a low-reliability satire source.',
+    owner: {
+      name: 'The Onion',
+      type: 'Satire publication',
+      description: 'The Onion is intentionally satirical and is treated as low reliability for factual-news purposes in this prototype.'
+    }
+  }
 };
 
 function sendJson(res, statusCode, payload) {
@@ -145,7 +217,8 @@ function normalizeReliability(reliability, domain) {
   return {
     score: Number.isInteger(reliability.score) ? reliability.score : fallback.score,
     label: ['high', 'medium', 'low'].includes(reliability.label) ? reliability.label : fallback.label,
-    explanation: reliability.explanation || fallback.explanation
+    explanation: reliability.explanation || fallback.explanation,
+    owner: reliability.owner || fallback.owner
   };
 }
 
@@ -278,9 +351,14 @@ async function buildResponse(article) {
   }
 
   if (matchedPattern) {
+    const reliability = {
+      ...matchedPattern.reliability,
+      owner: matchedPattern.reliability.owner || defaultAnalysis.reliability.owner
+    };
+
     return {
       freshness: matchedPattern.freshness,
-      reliability: matchedPattern.reliability,
+      reliability,
       topics: defaultAnalysis.topics,
       followUps: defaultAnalysis.followUps
     };

@@ -157,7 +157,8 @@ For the prototype:
 
 ## 6. Non-Goals for This Prototype (explicitly out of scope)
 
-- Real push notifications / alerts / topic subscriptions infrastructure — separate future milestone, not part of this build.
+- Real push notifications / topic subscriptions infrastructure — separate future milestone, not part of this build.
+- A lightweight local alert bookmark is included in the popup so the user can track a story for later updates; actual delivery infrastructure remains future work.
 - Firefox/Safari support — Chrome (Manifest V3) only.
 - User accounts, auth, or sync across devices.
 - Production-grade crawler or pre-computed cache warming — on-demand analysis only.
