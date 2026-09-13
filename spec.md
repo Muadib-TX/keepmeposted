@@ -88,7 +88,7 @@ Send `{title, publishDate, mainText, domain, canonicalUrl}` to the background wo
    - `freshness` (status, factDate, explanation)
    - `reliability` (score, label, explanation)
    - `topics` (top themes extracted from the article; use 2–5 concise labels)
-   - `followUps` (suggested next actions such as "Subscribe to future updates on this article" and "Subscribe to theme: X")
+   - `followUps` (suggested next actions such as "Keep Me Posted on this article" and "Keep Me Posted: X")
 
 ### 4.3 Badge Logic (`badge.js`)
 

@@ -141,7 +141,7 @@ function buildFollowUps(article, topics) {
   const headline = article.title || 'this article';
   const topicSuggestions = topics.slice(0, 2).map((topic) => ({
     type: 'theme',
-    label: `Subscribe to theme: ${topic.label}`
+    label: `Keep Me Posted: ${topic.label}`
   }));
 
   return [
