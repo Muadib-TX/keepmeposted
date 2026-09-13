@@ -1,6 +1,6 @@
 # Keep Me Posted
 
-Current package version: 0.21
+Current package version: 0.22
 
 A Chrome Manifest V3 browser extension prototype that ambiently analyzes news articles and shows three signals in the toolbar badge and popup:
 
@@ -16,28 +16,8 @@ A Chrome Manifest V3 browser extension prototype that ambiently analyzes news ar
 - 0.14 — Update version metadata and README
 
 - 0.15 — not sure
-# Please enter the commit message for your changes. Lines starting
-# with '#' will be ignored, and an empty message aborts the commit.
-#
-# On branch main
-# Your branch is up to date with 'origin/main'.
-#
-# Changes to be committed:
-#	modified:   README.md
-#	modified:   package.json
-#
 
-- 0.16 — # Please enter the commit message for your changes. Lines starting
-# with '#' will be ignored, and an empty message aborts the commit.
-#
-# On branch main
-# Your branch is ahead of 'origin/main' by 1 commit.
-#   (use "git push" to publish your local commits)
-#
-# Changes to be committed:
-#	modified:   README.md
-#	modified:   package.json
-#
+- 0.16 — test
 
 - 0.17 — test
 
@@ -48,6 +28,8 @@ A Chrome Manifest V3 browser extension prototype that ambiently analyzes news ar
 - 0.20 — Update spec and version metadata
 
 - 0.21 — Rename alert section heading
+
+- 0.22 — Refine alert tab CTA and follow-up styling
 Recent git commit history reflected in this README:
 
 - `7c88bd7` — Remove stale follow-up wording and polish labels
