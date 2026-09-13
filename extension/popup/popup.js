@@ -47,7 +47,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const freshness = state.analysis.freshness || {};
   const reliability = state.analysis.reliability || {};
   const topics = Array.isArray(state.analysis.topics) ? state.analysis.topics : [];
-  const followUps = Array.isArray(state.analysis.followUps) ? state.analysis.followUps : [];
+  const followUps = Array.isArray(state.analysis.followUps) && state.analysis.followUps.length
+    ? state.analysis.followUps
+    : topics.map((topic) => ({
+        type: 'theme',
+        label: topic.label
+      }));
 
   const alertStorage = await chrome.storage.local.get(['story-alerts']);
   const savedAlerts = Array.isArray(alertStorage['story-alerts']) ? alertStorage['story-alerts'] : [];
