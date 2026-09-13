@@ -141,7 +141,7 @@ Response: {
     { label: string, confidence: 0-1 }
   ],
   followUps: [
-    { type: "article" | "theme", label: string, description: string }
+    { type: "article" | "theme", label: string }
   ]
 }
 ```

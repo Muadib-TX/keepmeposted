@@ -128,10 +128,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     ? followUps
         .map(
           (followUp) =>
-            `<li><strong>${followUp.label}</strong><br /><span>${followUp.description}</span></li>`
+            `<li class="follow-up-item"><div class="follow-up-header"><span class="follow-up-label">${followUp.label}</span></div><button type="button" class="secondary-button follow-up-button" data-followup-type="${followUp.type}">Sign up</button></li>`
         )
         .join('')
     : '<li>No follow-up suggestions available.</li>';
+
+  followUpsListEl.querySelectorAll('.follow-up-button').forEach((button) => {
+    button.addEventListener('click', async () => {
+      if (!storyIdentifier) {
+        return;
+      }
+
+      await toggleAlertButton.click();
+    });
+  });
 
   reportButton.addEventListener('click', () => {
     console.log('Report incorrect clicked', {

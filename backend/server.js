@@ -141,15 +141,13 @@ function buildFollowUps(article, topics) {
   const headline = article.title || 'this article';
   const topicSuggestions = topics.slice(0, 2).map((topic) => ({
     type: 'theme',
-    label: `Subscribe to theme: ${topic.label}`,
-    description: `Receive future updates when ${topic.label.toLowerCase()} becomes relevant.`
+    label: `Subscribe to theme: ${topic.label}`
   }));
 
   return [
     {
       type: 'article',
-      label: `Subscribe to updates for ${headline}`,
-      description: `Get a future update when ${headline} continues to develop.`
+      label: `Subscribe to updates for ${headline}`
     },
     ...topicSuggestions
   ];
@@ -256,7 +254,7 @@ function buildGeminiPrompt(article) {
     { "label": "Topic label", "confidence": 0.0 }
   ],
   "followUps": [
-    { "type": "article" | "theme", "label": "Action label", "description": "Short description" }
+    { "type": "article" | "theme", "label": "Action label" }
   ]
 }
 
@@ -271,7 +269,8 @@ Guidance:
 - Infer the likely owner or publisher of the outlet, if the article or domain makes that clear.
 - If the owner is not explicit, infer the most likely owner type (for example, wire service, media company, satirical outlet, or independent outlet) and keep the description conservative.
 - Suggest 1–3 practical follow-up actions, including at least one article-level follow-up and one theme-level follow-up when possible.
-- Keep explanations concise and useful for a browser extension popup.
+- Keep action labels short and direct so they can be shown as buttons in the popup.
+- Do not add extra description text beyond the action label.
 
 Article payload:
 ${JSON.stringify(article, null, 2)}`;
