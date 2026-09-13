@@ -16,6 +16,11 @@ The extension must work with **zero user interaction required** for the base sig
 
 This is a **prototype**, not a production system. Prioritize a working end-to-end loop over completeness. Use mocked/stubbed data where a real data source would be out of scope (see Section 6, Non-Goals).
 
+Current implementation status:
+- The popup combines freshness and follow-up actions into a single **Keep Me Posted** section.
+- The CTA is button-first, with a compact, readable layout designed for quick scanning.
+- The project version is currently `0.19`.
+
 ---
 
 ## 2. Core User Flow
@@ -88,7 +93,7 @@ Send `{title, publishDate, mainText, domain, canonicalUrl}` to the background wo
    - `freshness` (status, factDate, explanation)
    - `reliability` (score, label, explanation)
    - `topics` (top themes extracted from the article; use 2–5 concise labels)
-   - `followUps` (suggested next actions such as "Keep Me Posted on this article" and "Keep Me Posted: X")
+   - `followUps` (suggested next actions rendered as compact theme buttons in the merged Keep Me Posted section)
 
 ### 4.3 Badge Logic (`badge.js`)
 
@@ -112,7 +117,7 @@ On click, show:
 - **Freshness section**: the "fact date" the model extracted (if different from publish date) and a one-line explanation.
 - **Reliability section**: a 0–100 score plus 1–2 sentence rationale, and the domain it was scored against.
 - **Topics section**: up to 3–5 most relevant themes extracted from the article.
-- **Follow-up actions section**: a list of suggested next actions, such as subscribing to updates for the article or one of the highlighted themes.
+- **Keep Me Posted section**: a merged section that includes the freshness summary, the Add alert CTA, and the follow-up theme buttons.
 - A "Report incorrect" button (stub — just `console.log` the feedback for the prototype, no need to wire a real feedback pipeline).
 
 Keep this to a single scrollable popup, ~360px wide, no additional navigation.
@@ -150,6 +155,7 @@ For the prototype:
 - `reliability` can be computed from a **hardcoded domain reputation table** (~20 entries covering major outlets across the trust spectrum, e.g. wire services = high, known-low-quality domains = low, everything else = medium/unknown). No need for a real scoring model.
 - `freshness` can call a Gemini API (preferred for this prototype), or a mock/fallback response if no API key is configured. The Gemini path should take the article payload and return JSON shaped like `{status, factDate, explanation}`.
 - `topics` and `followUps` can be produced from a lightweight heuristic or a model prompt. The important part is that the response is structured and usable by the popup.
+- In the UI, follow-up actions should render as compact buttons labeled with the relevant theme, with the Add alert CTA preserved in the merged Keep Me Posted section.
 - No database needed — in-memory or flat-file caching is fine.
 - Multiple response modes are acceptable as long as they preserve the same JSON contract: mock mode, Gemini mode, and graceful fallback mode.
 
