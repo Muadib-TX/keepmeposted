@@ -59,7 +59,7 @@ node backend/server.js
 You should see output like:
 
 ```text
-Freshness & Reliability backend is running on http://localhost:3001 with Gemini integration enabled
+Keep Me Posted backend is running on http://localhost:3001 with Gemini integration enabled
 ```
 
 ### 4) Load the extension in Chrome

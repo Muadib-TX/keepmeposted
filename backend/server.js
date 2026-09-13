@@ -415,6 +415,6 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(
-    `Freshness & Reliability backend is running on http://localhost:${PORT}${GEMINI_API_KEY ? ' with Gemini integration enabled' : ''}`
+    `Keep Me Posted backend is running on http://localhost:${PORT}${GEMINI_API_KEY ? ' with Gemini integration enabled' : ''}`
   );
 });

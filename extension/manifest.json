@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Freshness & Reliability Prototype",
+  "name": "Keep Me Posted",
   "version": "1.0.0",
   "description": "Ambiently detects news articles and shows freshness and reliability signals in the badge.",
   "permissions": ["storage"],
@@ -9,7 +9,7 @@
     "service_worker": "background/service-worker.js"
   },
   "action": {
-    "default_title": "Freshness & Reliability",
+    "default_title": "Keep Me Posted",
     "default_popup": "popup/popup.html"
   },
   "content_scripts": [

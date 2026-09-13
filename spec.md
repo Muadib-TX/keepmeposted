@@ -1,4 +1,4 @@
-# Build Prompt: "Freshness & Reliability" Browser Extension Prototype
+# Build Prompt: "Keep Me Posted" Browser Extension Prototype
 
 > Paste everything below into a coding assistant (Claude Code, Cursor, etc.) as the task brief. It is written to be self-contained and unambiguous so the assistant does not need to ask clarifying questions to start building.
 

@@ -11,6 +11,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const alertStatusEl = document.getElementById('alertStatus');
   const reliabilityScoreEl = document.getElementById('reliabilityScore');
   const reliabilityLabelEl = document.getElementById('reliabilityLabel');
+
+  const updateStatusBadge = (element, value, defaultValue = 'unknown') => {
+    const normalized = (value || defaultValue).toLowerCase();
+    const label = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    element.classList.add('status-badge');
+    element.textContent = label;
+    element.dataset.state = normalized;
+  };
   const domainEl = document.getElementById('domain');
   const ownerNameEl = document.getElementById('ownerName');
   const ownerTypeEl = document.getElementById('ownerType');
@@ -93,12 +101,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateAlertButton();
   });
 
-  freshnessStatusEl.textContent = freshness.status ? `Status: ${freshness.status}` : 'Status: unknown';
+  updateStatusBadge(freshnessStatusEl, freshness.status, 'unknown');
   factDateEl.textContent = freshness.factDate ? `Fact date: ${freshness.factDate}` : 'Fact date: unavailable';
   freshnessExplanationEl.textContent = freshness.explanation || 'No explanation supplied.';
 
   reliabilityScoreEl.textContent = reliability.score !== undefined ? `Score: ${reliability.score}/100` : 'Score: unavailable';
-  reliabilityLabelEl.textContent = reliability.label ? `Label: ${reliability.label}` : 'Label: unknown';
+  updateStatusBadge(reliabilityLabelEl, reliability.label, 'unknown');
   domainEl.textContent = `Domain: ${state.article?.domain || 'Unknown domain'}`;
   const owner = reliability.owner || {};
   ownerNameEl.textContent = owner.name ? `Owner: ${owner.name}` : 'Owner: unavailable';
