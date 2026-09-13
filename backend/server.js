@@ -203,7 +203,12 @@ function buildFallbackReliability(domain) {
   return {
     score: 55,
     label: 'medium',
-    explanation: 'This domain is not in the prototype reputation table, so it is scored as medium reliability by default.'
+    explanation: 'This domain is not in the prototype reputation table, so it is scored as medium reliability by default.',
+    owner: {
+      name: normalizedDomain || 'Unknown owner',
+      type: 'Unclassified media outlet',
+      description: 'This domain is not in the prototype reputation table, so the owner metadata is inferred conservatively.'
+    }
   };
 }
 
@@ -214,11 +219,17 @@ function normalizeReliability(reliability, domain) {
     return fallback;
   }
 
+  const owner = {
+    name: reliability.owner?.name || fallback.owner?.name || 'Unknown owner',
+    type: reliability.owner?.type || fallback.owner?.type || 'Unclassified media outlet',
+    description: reliability.owner?.description || fallback.owner?.description || 'Owner information is unavailable.'
+  };
+
   return {
     score: Number.isInteger(reliability.score) ? reliability.score : fallback.score,
     label: ['high', 'medium', 'low'].includes(reliability.label) ? reliability.label : fallback.label,
     explanation: reliability.explanation || fallback.explanation,
-    owner: reliability.owner || fallback.owner
+    owner
   };
 }
 
@@ -234,7 +245,12 @@ function buildGeminiPrompt(article) {
   "reliability": {
     "score": 0,
     "label": "high" | "medium" | "low",
-    "explanation": "A short rationale for the domain trust score"
+    "explanation": "A short rationale for the domain trust score",
+    "owner": {
+      "name": "Inferred owner or organization name",
+      "type": "e.g. wire service, media company, satirical outlet, independent outlet",
+      "description": "A short note describing the owner and why it matters for reliability"
+    }
   },
   "topics": [
     { "label": "Topic label", "confidence": 0.0 }
@@ -252,6 +268,8 @@ Guidance:
 - If the article is current and does not appear stale, set freshness.status to "fresh".
 - If the article lacks enough information, set freshness.status to "unknown".
 - Extract the top 2–5 themes or topics discussed in the article.
+- Infer the likely owner or publisher of the outlet, if the article or domain makes that clear.
+- If the owner is not explicit, infer the most likely owner type (for example, wire service, media company, satirical outlet, or independent outlet) and keep the description conservative.
 - Suggest 1–3 practical follow-up actions, including at least one article-level follow-up and one theme-level follow-up when possible.
 - Keep explanations concise and useful for a browser extension popup.
 
