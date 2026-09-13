@@ -1,10 +1,32 @@
 # Keep Me Posted
 
+Current package version: 0.12
+
 A Chrome Manifest V3 browser extension prototype that ambiently analyzes news articles and shows three signals in the toolbar badge and popup:
 
 - Freshness: whether the article is presenting current facts or resurfacing old events.
 - Reliability: a coarse trust signal for the source/domain.
 - Topic follow-up: suggested topics and follow-up actions based on the article content.
+
+## Version history
+
+Recent git commit history reflected in this README:
+
+- `7c88bd7` — Remove stale follow-up wording and polish labels
+- `8d58eda` — Refine Keep me posted follow-up labels
+- `64663de` — Add release notes history support
+- `ba2fc2f` — Simplify theme follow-up CTA
+- `2a6b84f` — Update follow-up button label
+- `68a7f44` — Refine follow-up CTA layout
+- `32b4e3d` — Refine follow-up actions UI
+- `fea1aff` — Update branding to Keep Me Posted
+- `dfbc71f` — Update reliability AI owner inference
+- `e8f4777` — Add story alert option to freshness popup
+- `0a5ff72` — read me addition
+- `e7adaad` — ai usage extension
+- `8bf2af5` — updating with llm live usage
+- `cabe207` — first iteration
+- `3a0217a` — initial commit
 
 ## Project structure
 
