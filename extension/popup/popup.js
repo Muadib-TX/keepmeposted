@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ? followUps
         .map(
           (followUp) =>
-            `<li class="follow-up-item"><div class="follow-up-header"><span class="follow-up-label">${followUp.label}</span></div><button type="button" class="secondary-button follow-up-button" data-followup-type="${followUp.type}">Sign up</button></li>`
+            `<li class="follow-up-item"><div class="follow-up-header"><span class="follow-up-label">${followUp.label}</span></div><button type="button" class="secondary-button follow-up-button" data-followup-type="${followUp.type}">Add alert</button></li>`
         )
         .join('')
     : '<li>No follow-up suggestions available.</li>';
