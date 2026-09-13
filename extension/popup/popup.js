@@ -116,7 +116,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   topicsListEl.innerHTML = topics.length
     ? topics
-        .map((topic) => `<li>${topic.label}${topic.confidence ? ` (${Math.round(topic.confidence * 100)}%)` : ''}</li>`)
+        .map((topic) => {
+          const query = encodeURIComponent(topic.label);
+          const label = `${topic.label}${topic.confidence ? ` (${Math.round(topic.confidence * 100)}%)` : ''}`;
+          return `<li><a href="https://news.google.com/search?q=${query}" target="_blank" rel="noopener noreferrer">${label}</a></li>`;
+        })
         .join('')
     : '<li>No topics detected.</li>';
 
