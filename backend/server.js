@@ -156,11 +156,31 @@ function buildDefaultAnalysis(article) {
   const topics = buildTopics(article);
 
   return {
+    summary: buildFallbackSummary(article),
     freshness: buildFallbackFreshness(article),
     reliability: buildFallbackReliability(article.domain),
     topics,
     followUps: buildFollowUps(article, topics)
   };
+}
+
+function buildFallbackSummary(article) {
+  const sourceText = String(article.mainText || article.title || '').trim();
+  const firstSentence = sourceText.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim();
+
+  if (firstSentence) {
+    return firstSentence;
+  }
+
+  const excerpt = sourceText.slice(0, 240).trim().replace(/[,;:]\s*$/, '');
+  return excerpt ? `${excerpt}.` : 'A summary is not available for this article.';
+}
+
+function normalizeSummary(summary, article) {
+  const candidate = String(summary || '').trim();
+  const firstSentence = candidate.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim();
+
+  return firstSentence || buildFallbackSummary(article);
 }
 
 function ensureValidFreshnessObject(freshness) {
@@ -234,6 +254,7 @@ function buildGeminiPrompt(article) {
   return `You are helping build a news freshness checker prototype. Analyze the following article payload and return ONLY valid JSON with this exact structure:
 
 {
+  "summary": "One concise sentence summarizing the article",
   "freshness": {
     "status": "fresh" | "stale" | "unknown",
     "factDate": "YYYY-MM-DD" | null,
@@ -332,6 +353,7 @@ async function analyzeWithGemini(article) {
     }
 
     const parsed = JSON.parse(extractJson(rawText));
+    const normalizedSummary = normalizeSummary(parsed?.summary, article);
     const normalizedFreshness = ensureValidFreshnessObject(parsed?.freshness || parsed);
     const normalizedReliability = normalizeReliability(parsed?.reliability, article.domain);
     const normalizedTopics = Array.isArray(parsed?.topics) && parsed.topics.length
@@ -342,6 +364,7 @@ async function analyzeWithGemini(article) {
       : buildFollowUps(article, normalizedTopics);
 
     return {
+      summary: normalizedSummary,
       freshness: normalizedFreshness,
       reliability: normalizedReliability,
       topics: normalizedTopics,
@@ -373,6 +396,7 @@ async function buildResponse(article) {
     };
 
     return {
+      summary: defaultAnalysis.summary,
       freshness: matchedPattern.freshness,
       reliability,
       topics: defaultAnalysis.topics,

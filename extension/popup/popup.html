@@ -8,7 +8,20 @@
   </head>
   <body>
     <main class="popup">
-      <h1>Keep Me Posted</h1>
+      <header class="brand" aria-label="Keep Me Posted">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="presentation">
+            <path d="M15 20a9 9 0 0 1 18 0c0 7 3 8 5 11H10c2-3 5-4 5-11Z" />
+            <path d="M19 36a5 5 0 0 0 10 0" />
+            <path d="M24 7v3" />
+            <path d="M37 14l2-2" />
+          </svg>
+        </div>
+        <div>
+          <p class="brand-name">Keep Me Posted</p>
+          <p class="brand-tagline">Stay close to the story</p>
+        </div>
+      </header>
       <div id="loading">Loading article analysis…</div>
       <section id="content" class="hidden">
         <div class="meta">
@@ -18,19 +31,26 @@
 
         <section class="panel">
           <h3>Alerts</h3>
+          <p id="summary"></p>
           <p id="freshnessStatus"></p>
           <p id="factDate"></p>
-          <p id="freshnessExplanation"></p>
           <p id="alertStatus" class="muted"></p>
           <ul id="followUpsList"></ul>
         </section>
 
         <section class="panel">
-          <h3>Reliability</h3>
-          <p id="reliabilityScore"></p>
-          <p id="reliabilityLabel"></p>
+          <div class="panel-header">
+            <h3>Source reliability</h3>
+            <span id="reliabilityLabel" class="status-badge"></span>
+          </div>
+          <div class="source-summary">
+            <div>
+              <span class="eyebrow">Media</span>
+              <strong id="ownerName">Media unavailable</strong>
+            </div>
+            <span id="reliabilityScore" class="score"></span>
+          </div>
           <p id="domain"></p>
-          <p id="ownerName"></p>
           <p id="ownerType"></p>
           <p id="ownerDescription"></p>
           <p id="reliabilityExplanation"></p>

@@ -1,6 +1,6 @@
 importScripts('../lib/analysisClient.js', '../lib/badge.js');
 
-const ANALYSIS_CACHE_PREFIX = 'analysis-cache:';
+const ANALYSIS_CACHE_PREFIX = 'analysis-cache-v2:';
 const TAB_STATE_PREFIX = 'tab-state-';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -30,6 +30,11 @@ async function getCachedAnalysis(canonicalUrl) {
   const age = Date.now() - entry.cachedAt;
 
   if (age > CACHE_TTL_MS) {
+    await chrome.storage.local.remove(key);
+    return null;
+  }
+
+  if (!entry.analysis?.summary) {
     await chrome.storage.local.remove(key);
     return null;
   }
@@ -89,6 +94,11 @@ async function handlePageDetection(message, sender) {
     });
 
     clearBadge(tabId);
+    return;
+  }
+
+  const currentTab = await chrome.tabs.get(tabId);
+  if (currentTab.url && currentTab.url !== article.canonicalUrl && !currentTab.url.startsWith(article.canonicalUrl)) {
     return;
   }
 

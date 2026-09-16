@@ -4,9 +4,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const titleEl = document.getElementById('title');
   const publishDateEl = document.getElementById('publishDate');
+  const summaryEl = document.getElementById('summary');
   const freshnessStatusEl = document.getElementById('freshnessStatus');
   const factDateEl = document.getElementById('factDate');
-  const freshnessExplanationEl = document.getElementById('freshnessExplanation');
   const alertStatusEl = document.getElementById('alertStatus');
   const reliabilityScoreEl = document.getElementById('reliabilityScore');
   const reliabilityLabelEl = document.getElementById('reliabilityLabel');
@@ -27,13 +27,46 @@ document.addEventListener('DOMContentLoaded', async () => {
   const followUpsListEl = document.getElementById('followUpsList');
   const reportButton = document.getElementById('reportButton');
 
+  const formatPublishDate = (value) => {
+    if (!value) return 'Publication date unavailable';
+
+    const rawValue = String(value).trim();
+    const dateOnlyMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const date = dateOnlyMatch
+      ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+      : new Date(rawValue);
+
+    if (Number.isNaN(date.getTime())) return `Published ${rawValue}`;
+
+    const options = dateOnlyMatch
+      ? { dateStyle: 'medium' }
+      : { dateStyle: 'medium', timeStyle: 'short' };
+
+    return `Published ${new Intl.DateTimeFormat(undefined, options).format(date)}`;
+  };
+
+  const formatFactDate = (value) => {
+    if (!value) return 'Fact date unavailable';
+
+    const dateOnlyMatch = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const date = dateOnlyMatch
+      ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+      : new Date(value);
+
+    if (Number.isNaN(date.getTime())) return `Fact date: ${value}`;
+
+    return `Fact date: ${new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date)}`;
+  };
+
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const storageKey = `tab-state-${tab.id}`;
   const stored = await chrome.storage.local.get([storageKey]);
   const state = stored[storageKey];
 
   if (!state || !state.analysis) {
-    loading.textContent = 'This page has not been analyzed yet.';
+    loading.textContent = state?.status === 'error'
+      ? 'Analysis is unavailable. Start the local backend and reload the article.'
+      : 'This page has not been analyzed yet.';
     return;
   }
 
@@ -41,9 +74,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   content.classList.remove('hidden');
 
   titleEl.textContent = state.article?.title || 'Untitled article';
-  publishDateEl.textContent = state.article?.publishDate ? `Published: ${state.article.publishDate}` : 'Published date unavailable';
+  publishDateEl.textContent = formatPublishDate(state.article?.publishDate);
 
   const freshness = state.analysis.freshness || {};
+  summaryEl.textContent = state.analysis.summary || 'Summary unavailable.';
   const reliability = state.analysis.reliability || {};
   const topics = Array.isArray(state.analysis.topics) ? state.analysis.topics : [];
   const followUps = Array.isArray(state.analysis.followUps) && state.analysis.followUps.length
@@ -60,9 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const updateAlertStatus = () => {
     const isSaved = Boolean(existingAlert);
-    alertStatusEl.textContent = isSaved
-      ? 'You are signed up for updates on this story.'
-      : 'Sign up for updates to get notified about new developments.';
+    alertStatusEl.textContent = isSaved ? 'Following this story.' : '';
   };
 
   const refreshAlertState = async () => {
@@ -101,14 +133,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   await refreshAlertState();
 
   updateStatusBadge(freshnessStatusEl, freshness.status, 'unknown');
-  factDateEl.textContent = freshness.factDate ? `Fact date: ${freshness.factDate}` : 'Fact date: unavailable';
-  freshnessExplanationEl.textContent = freshness.explanation || 'No explanation supplied.';
+  factDateEl.textContent = formatFactDate(freshness.factDate);
 
   reliabilityScoreEl.textContent = reliability.score !== undefined ? `Score: ${reliability.score}/100` : 'Score: unavailable';
   updateStatusBadge(reliabilityLabelEl, reliability.label, 'unknown');
   domainEl.textContent = `Domain: ${state.article?.domain || 'Unknown domain'}`;
   const owner = reliability.owner || {};
-  ownerNameEl.textContent = owner.name ? `Owner: ${owner.name}` : 'Owner: unavailable';
+  ownerNameEl.textContent = owner.name || state.article?.domain || 'Media unavailable';
   ownerTypeEl.textContent = owner.type ? `Owner type: ${owner.type}` : 'Owner type: unavailable';
   ownerDescriptionEl.textContent = owner.description || 'No owner description available.';
   reliabilityExplanationEl.textContent = reliability.explanation || 'No explanation supplied.';

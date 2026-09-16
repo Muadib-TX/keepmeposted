@@ -28,7 +28,8 @@
 
           if (!current || typeof current !== 'object') continue;
 
-          if (current['@type'] === 'NewsArticle' || current['@type'] === 'Article') {
+          const types = Array.isArray(current['@type']) ? current['@type'] : [current['@type']];
+          if (types.some((type) => ['newsarticle', 'article'].includes(String(type).toLowerCase()))) {
             return current;
           }
 
@@ -58,21 +59,36 @@
   }
 
   function findLargestTextBlock() {
-    const elements = Array.from(document.querySelectorAll('article, section, div'));
+    const elements = Array.from(document.querySelectorAll('article, [itemprop="articleBody"], main, section, div'));
     let bestBlock = null;
-    let bestLength = 0;
+    let bestScore = 0;
 
     for (const element of elements) {
-      const text = readText(element);
-      const textLength = text.length;
+      const role = `${element.id || ''} ${element.className || ''}`.toLowerCase();
+      if (/(comment|related|recommend|navigation|sidebar|footer|header|menu)/.test(role)) {
+        continue;
+      }
 
-      if (textLength > bestLength) {
-        bestLength = textLength;
+      const text = readText(element);
+      const paragraphCount = element.querySelectorAll('p').length;
+      const score = text.length + paragraphCount * 160;
+
+      if (score > bestScore) {
+        bestScore = score;
         bestBlock = element;
       }
     }
 
     return bestBlock || document.body;
+  }
+
+  function findArticleNode() {
+    const semanticNode = document.querySelector('article, [itemprop="articleBody"]');
+    if (semanticNode && readText(semanticNode).length >= 120) {
+      return semanticNode;
+    }
+
+    return findLargestTextBlock();
   }
 
   function findTitle() {
@@ -126,9 +142,9 @@
     }
 
     const path = window.location.pathname.toLowerCase();
-    const newsPathPatterns = ['news', 'article', 'story', '/2026/', '/2025/', '/2024/', '/2023/'];
+    const newsPathPatterns = ['news', 'article', 'story'];
 
-    if (newsPathPatterns.some((pattern) => path.includes(pattern))) {
+    if (newsPathPatterns.some((pattern) => path.includes(pattern)) || /(19|20)\d{2}\/\d{1,2}\/\d{1,2}/.test(path)) {
       return true;
     }
 
@@ -141,7 +157,7 @@
     }
 
     const ldJson = findJsonLdNewsArticle();
-    const articleNode = document.querySelector('article') || findLargestTextBlock();
+    const articleNode = findArticleNode();
     const mainText = readText(articleNode);
 
     if (!mainText || mainText.length < 120) {
