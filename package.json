@@ -1,6 +1,6 @@
 {
   "name": "keep-me-posted",
-  "version": "0.26",
+  "version": "0.27",
   "private": true,
   "scripts": {
     "check": "node --check extension/background/service-worker.js && node --check extension/content/detector.js && node --check extension/lib/articleDetector.js && node --check extension/lib/articleAnalyzer.js && node --check extension/lib/analysisClient.js && node --check extension/lib/badge.js && node --check extension/options/options.js && node --check extension/popup/popup.js",
