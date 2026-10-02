@@ -46,17 +46,17 @@ Current implementation status:
     popup.html / popup.js / popup.css   Detail view on icon click
   /lib
     articleDetector.js      Heuristics (Section 4.1)
-    analysisClient.js        Calls backend API, handles caching
+    articleAnalyzer.js       Local analysis fallback
+    analysisClient.js        Calls Gemini directly when configured
     badge.js                 Badge color/text logic
+  /options
+    options.html/js/css      Stores a user-provided Gemini key in extension-local storage
   /icons
     icon-16/48/128.png (green/yellow/red/neutral variants)
 
-/backend  (separate lightweight service — see Section 5)
-  server.js / app.py        API stub: POST /analyze
-  mockData.json              Canned responses keyed by URL pattern, for prototype use
 ```
 
-Data flow: `content script (extract) → background worker (orchestrate + cache) → backend API (analyze) → background worker (update badge + store for popup)`.
+Data flow: `content script (extract) → background worker (cache and orchestration) → Gemini API or local analyzer → badge and popup`.
 
 ---
 
@@ -64,7 +64,7 @@ Data flow: `content script (extract) → background worker (orchestrate + cache)
 
 ### 4.1 Article Detection (`articleDetector.js`)
 
-Run cheaply and locally — **do not call the backend for pages that clearly aren't articles.**
+Run cheaply and locally — **do not call Gemini for pages that clearly aren't articles.**
 
 Detect "this is an article" if any of the following match:
 - `document.querySelector('script[type="application/ld+json"]')` contains `"@type": "NewsArticle"` or `"@type": "Article"`.
@@ -85,11 +85,11 @@ Send `{title, publishDate, mainText, domain, canonicalUrl}` to the background wo
 
 1. On receiving article data from the content script:
    - Check local cache (`chrome.storage.local`, keyed by `canonicalUrl`) for a result younger than 24 hours. If found, skip the network call and go straight to badge update.
-   - Otherwise, `POST` the article payload to the backend `/analyze` endpoint.
+  - Otherwise, call Gemini directly from the service worker if the user has configured a key; if not, use the local analyzer.
 2. Store the response in `chrome.storage.local` keyed by `canonicalUrl`.
 3. Trigger badge update (4.3) and make the result available to the popup (4.4).
-4. Handle failure gracefully: on network error or timeout (>5s), set badge to a neutral "unknown" state — never block or show an error to the user.
-5. When the backend responds, the payload should include all of the following:
+4. Handle Gemini errors or timeout by returning local analysis; never block article reading.
+5. Analysis should include all of the following:
    - `freshness` (status, factDate, explanation)
    - `reliability` (score, label, explanation)
    - `topics` (top themes extracted from the article; use 2–5 concise labels)
@@ -124,40 +124,14 @@ Keep this to a single scrollable popup, ~360px wide, no additional navigation.
 
 ---
 
-## 5. Backend Stub
+## 5. Analysis Modes
 
-Build a minimal local server (Node/Express or Python/FastAPI — assistant's choice, prefer whichever is faster to stand up) exposing:
+The extension may call Gemini directly from its service worker when the user has configured an API key. No application backend is required.
 
-```
-POST /analyze
-Body: { title, publishDate, mainText, domain, canonicalUrl }
-Response: {
-  freshness: {
-    status: "fresh" | "stale" | "unknown",
-    factDate: "2026-03-01" | null,
-    explanation: string
-  },
-  reliability: {
-    score: 0-100,
-    label: "high" | "medium" | "low",
-    explanation: string
-  },
-  topics: [
-    { label: string, confidence: 0-1 }
-  ],
-  followUps: [
-    { type: "article" | "theme", label: string }
-  ]
-}
-```
-
-For the prototype:
-- `reliability` can be computed from a **hardcoded domain reputation table** (~20 entries covering major outlets across the trust spectrum, e.g. wire services = high, known-low-quality domains = low, everything else = medium/unknown). No need for a real scoring model.
-- `freshness` can call a Gemini API (preferred for this prototype), or a mock/fallback response if no API key is configured. The Gemini path should take the article payload and return JSON shaped like `{status, factDate, explanation}`.
-- `topics` and `followUps` can be produced from a lightweight heuristic or a model prompt. The important part is that the response is structured and usable by the popup.
-- In the UI, follow-up actions should render as compact buttons labeled with the relevant theme, with the Add alert CTA preserved in the merged Keep Me Posted section.
-- No database needed — in-memory or flat-file caching is fine.
-- Multiple response modes are acceptable as long as they preserve the same JSON contract: mock mode, Gemini mode, and graceful fallback mode.
+- With a key, send only article title, publication date, domain, and bounded article text to Google; do not send the canonical URL or embed the key in source.
+- Without a key, or if Gemini fails, use local analysis. Local freshness is an update-age estimate (falling back to publication date), not verification that the underlying facts are current.
+- Store the key in `chrome.storage.local`; this is suitable for personal use, not secure distribution of an extension containing a shared key.
+- Keep the structured analysis contract consistent between Gemini and local fallback.
 
 ---
 
@@ -170,7 +144,7 @@ For the prototype:
 - Production-grade crawler or pre-computed cache warming — on-demand analysis only.
 - Sophisticated readability/extraction library (e.g., full Mozilla Readability port) — the heuristics in 4.1 are sufficient.
 - Styling polish beyond a clean, readable popup.
-- A real backend system for article/topic subscriptions — the prototype only needs to surface suggested follow-up actions.
+- A notification service for article/topic subscriptions — the prototype only stores local follow selections.
 
 ---
 
@@ -180,7 +154,10 @@ For the prototype:
 - [ ] Visiting a non-article page (e.g., google.com) results in no badge.
 - [ ] Clicking the badge on an analyzed page shows the popup with freshness, reliability, topic, and follow-up sections populated.
 - [ ] Revisiting the same URL within 24 hours does not trigger a new network call (verify via console/network tab).
-- [ ] Killing the backend server and reloading a page results in a neutral badge state, not a broken extension.
+- [ ] The extension works without any local or cloud application backend.
+- [ ] With no Gemini key, local analysis still populates the badge and popup.
+- [ ] With a Gemini key, the service worker calls Google's API and identifies Gemini as the analysis source.
+- [ ] Removing the key clears cached analysis and returns the extension to local mode.
 - [ ] Code is organized per the file structure in Section 3, with comments explaining the detection heuristics.
 - [ ] The prototype demonstrates the main objective clearly: ambient article analysis plus suggested follow-up topic actions.
 
@@ -190,14 +167,14 @@ For the prototype:
 
 1. Scaffold `manifest.json` + empty content script/background worker, confirm it loads in `chrome://extensions`.
 2. Implement article detection + extraction (4.1), log results to console — verify on 3–5 real news sites before moving on.
-3. Stand up the backend stub with hardcoded/mocked responses (5), and include the `topics` + `followUps` fields even in mock mode.
-4. Wire badge updates (4.3) end-to-end using the mocked backend.
+3. Implement the local analyzer and verify freshness/date and theme behavior.
+4. Wire badge updates (4.3) end-to-end using local results.
 5. Build the popup (4.4), including the topic follow-up panel.
-6. Add Gemini-backed freshness analysis and keep the mock response as a fallback.
+6. Add optional direct Gemini analysis and a local key settings page.
 7. Add caching (4.2) and failure handling last.
 
 ---
 
 ## 9. Notes for Optimization
 
-This version is optimized for the stated objective by making the follow-up topic workflow explicit and by aligning the backend response schema with the full value proposition. In other words, the prototype is not only measuring freshness and reliability — it is also surfacing the most relevant story themes and suggesting next actions in a lightweight, testable way.
+This version keeps analysis in the extension, with an optional direct Gemini call and a local fallback. Local freshness measures publication age; only Gemini attempts to assess the article's underlying event timeline.

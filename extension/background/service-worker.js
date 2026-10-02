@@ -1,8 +1,12 @@
-importScripts('../lib/analysisClient.js', '../lib/badge.js');
+importScripts('../lib/articleAnalyzer.js', '../lib/analysisClient.js', '../lib/badge.js');
 
-const ANALYSIS_CACHE_PREFIX = 'analysis-cache-v2:';
+const ANALYSIS_CACHE_PREFIX = 'analysis-cache-v4:';
 const TAB_STATE_PREFIX = 'tab-state-';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+if (typeof chrome.storage.local.setAccessLevel === 'function') {
+  chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' }).catch(() => {});
+}
 
 async function keyForCanonicalUrl(canonicalUrl) {
   return `${ANALYSIS_CACHE_PREFIX}${canonicalUrl}`;

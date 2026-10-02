@@ -4,13 +4,17 @@
   "version": "1.0.0",
   "description": "Ambiently detects news articles and shows freshness and reliability signals in the badge.",
   "permissions": ["storage"],
-  "host_permissions": ["http://*/*", "https://*/*"],
+  "host_permissions": ["https://generativelanguage.googleapis.com/*"],
   "background": {
     "service_worker": "background/service-worker.js"
   },
   "action": {
     "default_title": "Keep Me Posted",
     "default_popup": "popup/popup.html"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
   },
   "content_scripts": [
     {

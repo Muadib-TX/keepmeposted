@@ -58,6 +58,15 @@
     return metaPublished || null;
   }
 
+  function extractUpdatedDate(ldJson) {
+    return ldJson?.dateModified
+      || document.querySelector('meta[property="article:modified_time"]')?.content
+      || document.querySelector('meta[property="og:updated_time"]')?.content
+      || document.querySelector('meta[name="last-modified"]')?.content
+      || document.querySelector('time[itemprop="dateModified"][datetime]')?.getAttribute('datetime')
+      || null;
+  }
+
   function findLargestTextBlock() {
     const elements = Array.from(document.querySelectorAll('article, [itemprop="articleBody"], main, section, div'));
     let bestBlock = null;
@@ -165,10 +174,12 @@
     }
 
     const publishDate = extractPublishDate(ldJson) || findIsoDateInPage();
+    const updatedDate = extractUpdatedDate(ldJson);
 
     return {
       title: findTitle(),
       publishDate,
+      updatedDate,
       mainText,
       domain: window.location.hostname,
       canonicalUrl: findCanonicalUrl()

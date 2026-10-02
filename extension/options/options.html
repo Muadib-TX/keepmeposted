@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Keep Me Posted Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="settings">
+      <header>
+        <p class="eyebrow">Keep Me Posted</p>
+        <h1>Analysis settings</h1>
+        <p class="intro">Gemini analysis runs directly from this extension. No app server is required.</p>
+      </header>
+
+      <form id="settingsForm">
+        <label for="apiKey">Gemini API key</label>
+        <div class="key-field">
+          <input id="apiKey" name="apiKey" type="password" autocomplete="off" spellcheck="false" />
+          <button id="toggleKey" type="button" aria-pressed="false">Show</button>
+        </div>
+        <p class="field-note">Stored in this browser profile. Do not use a key you cannot afford to expose from a local extension.</p>
+
+        <label for="model">Gemini model</label>
+        <input id="model" name="model" type="text" value="gemini-2.0-flash" autocomplete="off" spellcheck="false" />
+
+        <p class="privacy-note">When a key is set, the article title, publication date, last update date, domain, and up to 10,000 characters of article text are sent to Google for analysis. The canonical URL is not sent. Without a key, analysis stays local and uses simpler heuristics.</p>
+
+        <div class="actions">
+          <button class="save-button" type="submit">Save settings</button>
+          <button id="removeKey" class="remove-button" type="button">Remove API key</button>
+        </div>
+        <p id="status" role="status" aria-live="polite"></p>
+      </form>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

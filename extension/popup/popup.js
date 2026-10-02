@@ -1,71 +1,62 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const loading = document.getElementById('loading');
   const content = document.getElementById('content');
-
   const titleEl = document.getElementById('title');
   const publishDateEl = document.getElementById('publishDate');
   const summaryEl = document.getElementById('summary');
   const freshnessStatusEl = document.getElementById('freshnessStatus');
+  const freshnessScoreEl = document.getElementById('freshnessScore');
+  const freshnessProgressEl = document.getElementById('freshnessProgress');
+  const updateDateEl = document.getElementById('updateDate');
   const factDateEl = document.getElementById('factDate');
+  const freshnessExplanationEl = document.getElementById('freshnessExplanation');
+  const analysisSourceEl = document.getElementById('analysisSource');
   const alertStatusEl = document.getElementById('alertStatus');
   const reliabilityScoreEl = document.getElementById('reliabilityScore');
   const reliabilityLabelEl = document.getElementById('reliabilityLabel');
-
-  const updateStatusBadge = (element, value, defaultValue = 'unknown') => {
-    const normalized = (value || defaultValue).toLowerCase();
-    const label = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-    element.classList.add('status-badge');
-    element.textContent = label;
-    element.dataset.state = normalized;
-  };
   const domainEl = document.getElementById('domain');
   const ownerNameEl = document.getElementById('ownerName');
   const ownerTypeEl = document.getElementById('ownerType');
   const ownerDescriptionEl = document.getElementById('ownerDescription');
   const reliabilityExplanationEl = document.getElementById('reliabilityExplanation');
   const topicsListEl = document.getElementById('topicsList');
-  const followUpsListEl = document.getElementById('followUpsList');
+  const followStoryButton = document.getElementById('followStoryButton');
   const reportButton = document.getElementById('reportButton');
+  const settingsButton = document.getElementById('settingsButton');
+  settingsButton.addEventListener('click', () => chrome.runtime.openOptionsPage());
 
-  const formatPublishDate = (value) => {
-    if (!value) return 'Publication date unavailable';
+  const updateStatusBadge = (element, value, labels = {}) => {
+    const normalized = String(value || 'unknown').toLowerCase();
+    element.classList.add('status-badge');
+    element.textContent = labels[normalized] || `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}`;
+    element.dataset.state = normalized;
+  };
 
+  const formatDate = (value, fallback) => {
+    if (!value) return fallback;
     const rawValue = String(value).trim();
     const dateOnlyMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     const date = dateOnlyMatch
       ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
       : new Date(rawValue);
 
-    if (Number.isNaN(date.getTime())) return `Published ${rawValue}`;
-
-    const options = dateOnlyMatch
-      ? { dateStyle: 'medium' }
-      : { dateStyle: 'medium', timeStyle: 'short' };
-
-    return `Published ${new Intl.DateTimeFormat(undefined, options).format(date)}`;
-  };
-
-  const formatFactDate = (value) => {
-    if (!value) return 'Fact date unavailable';
-
-    const dateOnlyMatch = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    const date = dateOnlyMatch
-      ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
-      : new Date(value);
-
-    if (Number.isNaN(date.getTime())) return `Fact date: ${value}`;
-
-    return `Fact date: ${new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date)}`;
+    if (Number.isNaN(date.getTime())) return `${fallback}: ${rawValue}`;
+    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
   };
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    loading.textContent = 'No active tab is available.';
+    return;
+  }
+
   const storageKey = `tab-state-${tab.id}`;
   const stored = await chrome.storage.local.get([storageKey]);
   const state = stored[storageKey];
 
   if (!state || !state.analysis) {
     loading.textContent = state?.status === 'error'
-      ? 'Analysis is unavailable. Start the local backend and reload the article.'
+      ? 'Analysis is unavailable. Reload the article to try again.'
       : 'This page has not been analyzed yet.';
     return;
   }
@@ -74,69 +65,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   content.classList.remove('hidden');
 
   titleEl.textContent = state.article?.title || 'Untitled article';
-  publishDateEl.textContent = formatPublishDate(state.article?.publishDate);
+  publishDateEl.textContent = `Published ${formatDate(state.article?.publishDate, 'date unavailable')}`;
 
   const freshness = state.analysis.freshness || {};
   summaryEl.textContent = state.analysis.summary || 'Summary unavailable.';
+  const analysisSource = state.analysis.analysisSource;
+  const localRecency = analysisSource === 'local' || analysisSource === 'local-fallback';
+  const freshnessScore = Number.isFinite(freshness.score)
+    ? Math.max(0, Math.min(100, Math.round(freshness.score)))
+    : null;
+  freshnessScoreEl.textContent = freshnessScore === null ? '—' : String(freshnessScore);
+  freshnessProgressEl.value = freshnessScore ?? 0;
+  freshnessProgressEl.setAttribute('aria-valuetext', freshnessScore === null ? 'Score unavailable' : `${freshnessScore} out of 100`);
+  updateDateEl.textContent = freshness.updateDate
+    ? `${freshness.updateDateSource === 'updated' ? 'Last updated' : 'No update date found; using publication date'}: ${formatDate(freshness.updateDate, 'unavailable')}`
+    : 'No valid update date available';
+  updateStatusBadge(freshnessStatusEl, freshness.status, {
+    fresh: localRecency ? (freshness.updateDateSource === 'updated' ? 'Recently updated' : 'Recently published') : 'Current',
+    stale: localRecency ? (freshness.updateDateSource === 'updated' ? 'Older update' : 'Older publication') : 'Possibly old',
+    unknown: localRecency ? 'No date' : 'Unclear'
+  });
+  factDateEl.textContent = freshness.factDate
+    ? `Estimated event date: ${formatDate(freshness.factDate, 'unavailable')}`
+    : localRecency
+      ? 'Underlying event date is not assessed locally.'
+      : 'Estimated event date unavailable';
+  freshnessExplanationEl.textContent = freshness.explanation || 'There is not enough information to explain this assessment.';
+  analysisSourceEl.textContent = analysisSource === 'gemini'
+    ? 'Freshness and theme assessment by Gemini AI.'
+    : analysisSource === 'local'
+      ? 'Local analysis using publication date and article text.'
+      : analysisSource === 'local-fallback'
+        ? 'Gemini was unavailable; showing local analysis instead.'
+    : analysisSource === 'mock'
+      ? 'Demo fixture assessment; add a Gemini API key to use LLM analysis.'
+      : analysisSource === 'heuristic'
+        ? 'Local heuristic assessment; add a Gemini API key to use LLM analysis.'
+        : 'Analysis source not recorded. Reload the page to run the updated assessment.';
+
   const reliability = state.analysis.reliability || {};
   const topics = Array.isArray(state.analysis.topics) ? state.analysis.topics : [];
-  const followUps = Array.isArray(state.analysis.followUps) && state.analysis.followUps.length
-    ? state.analysis.followUps
-    : topics.map((topic) => ({
-        type: 'theme',
-        label: topic.label
-      }));
-
   const storyIdentifier = state.article?.canonicalUrl || state.article?.url || state.article?.title || null;
 
-  let savedAlerts = [];
-  let existingAlert = null;
-
-  const updateAlertStatus = () => {
-    const isSaved = Boolean(existingAlert);
-    alertStatusEl.textContent = isSaved ? 'Following this story.' : '';
-  };
-
-  const refreshAlertState = async () => {
-    const alertStorage = await chrome.storage.local.get(['story-alerts']);
-    savedAlerts = Array.isArray(alertStorage['story-alerts']) ? alertStorage['story-alerts'] : [];
-    existingAlert = storyIdentifier
-      ? savedAlerts.find((alert) => alert.canonicalUrl === storyIdentifier)
-      : null;
-
-    updateAlertStatus();
-  };
-
-  const toggleCurrentAlert = async () => {
-    if (!storyIdentifier) {
-      return;
-    }
-
-    const nextAlerts = savedAlerts.filter((alert) => alert.canonicalUrl !== storyIdentifier);
-
-    if (existingAlert) {
-      await chrome.storage.local.set({ 'story-alerts': nextAlerts });
-    } else {
-      nextAlerts.unshift({
-        canonicalUrl: storyIdentifier,
-        title: state.article?.title || 'Untitled article',
-        domain: state.article?.domain || 'Unknown domain',
-        addedAt: Date.now(),
-        freshnessStatus: freshness.status || 'unknown'
-      });
-      await chrome.storage.local.set({ 'story-alerts': nextAlerts });
-    }
-
-    await refreshAlertState();
-  };
-
-  await refreshAlertState();
-
-  updateStatusBadge(freshnessStatusEl, freshness.status, 'unknown');
-  factDateEl.textContent = formatFactDate(freshness.factDate);
-
   reliabilityScoreEl.textContent = reliability.score !== undefined ? `Score: ${reliability.score}/100` : 'Score: unavailable';
-  updateStatusBadge(reliabilityLabelEl, reliability.label, 'unknown');
+  updateStatusBadge(reliabilityLabelEl, reliability.label);
   domainEl.textContent = `Domain: ${state.article?.domain || 'Unknown domain'}`;
   const owner = reliability.owner || {};
   ownerNameEl.textContent = owner.name || state.article?.domain || 'Media unavailable';
@@ -144,39 +116,77 @@ document.addEventListener('DOMContentLoaded', async () => {
   ownerDescriptionEl.textContent = owner.description || 'No owner description available.';
   reliabilityExplanationEl.textContent = reliability.explanation || 'No explanation supplied.';
 
-  topicsListEl.innerHTML = topics.length
-    ? topics
-        .map((topic) => {
-          const query = encodeURIComponent(topic.label);
-          const label = `${topic.label}${topic.confidence ? ` (${Math.round(topic.confidence * 100)}%)` : ''}`;
-          return `<li><a href="https://news.google.com/search?q=${query}" target="_blank" rel="noopener noreferrer">${label}</a></li>`;
-        })
-        .join('')
-    : '<li>No topics detected.</li>';
+  const refreshStoryState = async () => {
+    const result = await chrome.storage.local.get(['story-alerts']);
+    const alerts = Array.isArray(result['story-alerts']) ? result['story-alerts'] : [];
+    const isFollowing = alerts.some((alert) => alert.canonicalUrl === storyIdentifier);
+    followStoryButton.textContent = isFollowing ? 'Following this story' : 'Follow this story';
+    followStoryButton.setAttribute('aria-pressed', String(isFollowing));
+    alertStatusEl.textContent = isFollowing
+      ? 'Saved in this browser. Push notifications are not enabled.'
+      : 'Saved follows stay in this browser; push notifications are not enabled.';
+  };
 
-  followUpsListEl.innerHTML = followUps.length
-    ? followUps
-        .map((followUp) => {
-          const buttonClasses = [
-            'secondary-button',
-            'follow-up-button',
-            followUp.type === 'article' ? 'article-follow-up-button' : ''
-          ]
-            .filter(Boolean)
-            .join(' ');
+  followStoryButton.disabled = !storyIdentifier;
+  followStoryButton.addEventListener('click', async () => {
+    if (!storyIdentifier) return;
+    const result = await chrome.storage.local.get(['story-alerts']);
+    const alerts = Array.isArray(result['story-alerts']) ? result['story-alerts'] : [];
+    const isFollowing = alerts.some((alert) => alert.canonicalUrl === storyIdentifier);
+    const nextAlerts = alerts.filter((alert) => alert.canonicalUrl !== storyIdentifier);
 
-          return `<li class="follow-up-item ${followUp.type === 'article' ? 'article-follow-up-item' : ''}"><button type="button" class="${buttonClasses}" data-followup-type="${followUp.type}">${followUp.label}</button></li>`;
-        })
-        .join('')
-    : '<li>No follow-up suggestions available.</li>';
+    if (!isFollowing) {
+      nextAlerts.unshift({
+        canonicalUrl: storyIdentifier,
+        title: state.article?.title || 'Untitled article',
+        domain: state.article?.domain || 'Unknown domain',
+        addedAt: Date.now(),
+        freshnessStatus: freshness.status || 'unknown'
+      });
+    }
 
-  followUpsListEl.querySelectorAll('.follow-up-button').forEach((button) => {
-    button.addEventListener('click', async () => {
-      if (button.dataset.followupType === 'article') {
-        await toggleCurrentAlert();
-      }
-    });
+    await chrome.storage.local.set({ 'story-alerts': nextAlerts });
+    await refreshStoryState();
   });
+
+  const refreshThemeState = async () => {
+    const result = await chrome.storage.local.get(['followed-themes']);
+    const followedThemes = Array.isArray(result['followed-themes']) ? result['followed-themes'] : [];
+    topicsListEl.replaceChildren();
+
+    if (!topics.length) {
+      const emptyItem = document.createElement('li');
+      emptyItem.textContent = 'No themes were identified.';
+      topicsListEl.append(emptyItem);
+      return;
+    }
+
+    topics.slice(0, 5).forEach((topic) => {
+      const label = String(topic.label || '').trim();
+      if (!label) return;
+
+      const isFollowing = followedThemes.some((theme) => theme.toLowerCase() === label.toLowerCase());
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'follow-theme-button';
+      button.textContent = `${isFollowing ? 'Following' : 'Follow'}: ${label}`;
+      button.setAttribute('aria-pressed', String(isFollowing));
+      button.addEventListener('click', async () => {
+        const latest = await chrome.storage.local.get(['followed-themes']);
+        const currentThemes = Array.isArray(latest['followed-themes']) ? latest['followed-themes'] : [];
+        const alreadyFollowing = currentThemes.some((theme) => theme.toLowerCase() === label.toLowerCase());
+        const nextThemes = currentThemes.filter((theme) => theme.toLowerCase() !== label.toLowerCase());
+        if (!alreadyFollowing) nextThemes.unshift(label);
+        await chrome.storage.local.set({ 'followed-themes': nextThemes });
+        await refreshThemeState();
+      });
+      item.append(button);
+      topicsListEl.append(item);
+    });
+  };
+
+  await Promise.all([refreshStoryState(), refreshThemeState()]);
 
   reportButton.addEventListener('click', () => {
     console.log('Report incorrect clicked', {

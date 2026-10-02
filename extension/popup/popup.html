@@ -22,6 +22,7 @@
           <p class="brand-tagline">Stay close to the story</p>
         </div>
       </header>
+      <button id="settingsButton" class="settings-link" type="button">Gemini settings</button>
       <div id="loading">Loading article analysis…</div>
       <section id="content" class="hidden">
         <div class="meta">
@@ -29,13 +30,31 @@
           <p id="publishDate"></p>
         </div>
 
-        <section class="panel">
-          <h3>Alerts</h3>
+        <section class="panel freshness-panel">
+          <div class="panel-header">
+            <h3>Freshness check</h3>
+            <span id="freshnessStatus" class="status-badge"></span>
+          </div>
+          <div class="freshness-score">
+            <div class="freshness-score-label">
+              <span class="eyebrow">Update recency</span>
+              <strong><span id="freshnessScore">—</span><span class="score-denominator">/100</span></strong>
+            </div>
+            <progress id="freshnessProgress" max="100" value="0" aria-label="Article update recency score"></progress>
+          </div>
           <p id="summary"></p>
-          <p id="freshnessStatus"></p>
+          <p id="updateDate"></p>
           <p id="factDate"></p>
-          <p id="alertStatus" class="muted"></p>
-          <ul id="followUpsList"></ul>
+          <p id="freshnessExplanation"></p>
+          <p id="analysisSource" class="analysis-source"></p>
+        </section>
+
+        <section class="panel follow-panel">
+          <h3>Keep up with this reporting</h3>
+          <button id="followStoryButton" class="follow-story-button" type="button" aria-pressed="false">Follow this story</button>
+          <p id="alertStatus" class="muted" aria-live="polite"></p>
+          <h4>Follow a theme</h4>
+          <ul id="topicsList"></ul>
         </section>
 
         <section class="panel">
@@ -55,12 +74,6 @@
           <p id="ownerDescription"></p>
           <p id="reliabilityExplanation"></p>
         </section>
-
-        <section class="panel">
-          <h3>Topics</h3>
-          <ul id="topicsList"></ul>
-        </section>
-
         <button id="reportButton" type="button">Report incorrect</button>
       </section>
     </main>

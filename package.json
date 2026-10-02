@@ -3,7 +3,7 @@
   "version": "0.25",
   "private": true,
   "scripts": {
-    "start:backend": "node backend/server.js",
-    "check": "node --check backend/server.js && node --check extension/background/service-worker.js && node --check extension/content/detector.js && node --check extension/lib/articleDetector.js && node --check extension/lib/analysisClient.js && node --check extension/lib/badge.js && node --check extension/popup/popup.js"
+    "check": "node --check extension/background/service-worker.js && node --check extension/content/detector.js && node --check extension/lib/articleDetector.js && node --check extension/lib/articleAnalyzer.js && node --check extension/lib/analysisClient.js && node --check extension/lib/badge.js && node --check extension/options/options.js && node --check extension/popup/popup.js",
+    "test": "node scripts/test-analyzer.js && node scripts/test-gemini-client.js"
   }
 }
