@@ -163,6 +163,7 @@ h3 {
 }
 
 #publishDate,
+#updateTiming,
 #factDate,
 #freshnessExplanation,
 #domain,
@@ -245,12 +246,12 @@ h3 {
 }
 
 #topicsList {
-  margin: 0;
+  margin: 10px 0 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 7px;
-  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .panel-header {
@@ -349,36 +350,31 @@ button:hover:not(:disabled) {
 
 .follow-theme-button {
   margin-top: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: transparent;
+  justify-content: center;
+  width: auto;
+  min-height: 32px;
+  padding: 7px 12px;
+  background: #f4f6f5;
   color: var(--ink);
   border: 1px solid var(--line);
+  border-radius: 999px;
   box-shadow: none;
-  text-align: left;
-  font-size: 13px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .follow-theme-button::after {
-  content: '+';
-  flex: 0 0 auto;
-  color: var(--blue);
-  font-size: 18px;
-  font-weight: 400;
+  content: '';
 }
 
 .follow-theme-button[aria-pressed='true'] {
   background: #e8f0eb;
   border-color: #9bb8a8;
   color: var(--forest);
-}
-
-.follow-theme-button[aria-pressed='true']::after {
-  content: 'Following';
-  font-size: 11px;
-  font-weight: 700;
 }
 
 h4 {

@@ -3,14 +3,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const content = document.getElementById('content');
   const titleEl = document.getElementById('title');
   const publishDateEl = document.getElementById('publishDate');
-  const summaryEl = document.getElementById('summary');
-  const freshnessStatusEl = document.getElementById('freshnessStatus');
-  const freshnessScoreEl = document.getElementById('freshnessScore');
-  const freshnessProgressEl = document.getElementById('freshnessProgress');
-  const updateDateEl = document.getElementById('updateDate');
-  const factDateEl = document.getElementById('factDate');
-  const freshnessExplanationEl = document.getElementById('freshnessExplanation');
-  const analysisSourceEl = document.getElementById('analysisSource');
   const alertStatusEl = document.getElementById('alertStatus');
   const reliabilityScoreEl = document.getElementById('reliabilityScore');
   const reliabilityLabelEl = document.getElementById('reliabilityLabel');
@@ -44,6 +36,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
   };
 
+  const parseDate = (value) => {
+    if (!value) return null;
+    const rawValue = String(value).trim();
+    const dateOnlyMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const date = dateOnlyMatch
+      ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+      : new Date(rawValue);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const calendarDay = (date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000;
+  const formatElapsedDays = (days) => days < 0
+    ? `${Math.abs(days)} days in the future`
+    : days === 0
+      ? 'today'
+      : days === 1
+        ? '1 day ago'
+        : `${days} days ago`;
+
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) {
     loading.textContent = 'No active tab is available.';
@@ -67,43 +78,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   titleEl.textContent = state.article?.title || 'Untitled article';
   publishDateEl.textContent = `Published ${formatDate(state.article?.publishDate, 'date unavailable')}`;
 
-  const freshness = state.analysis.freshness || {};
-  summaryEl.textContent = state.analysis.summary || 'Summary unavailable.';
-  const analysisSource = state.analysis.analysisSource;
-  const localRecency = analysisSource === 'local' || analysisSource === 'local-fallback';
-  const freshnessScore = Number.isFinite(freshness.score)
-    ? Math.max(0, Math.min(100, Math.round(freshness.score)))
-    : null;
-  freshnessScoreEl.textContent = freshnessScore === null ? '—' : String(freshnessScore);
-  freshnessProgressEl.value = freshnessScore ?? 0;
-  freshnessProgressEl.setAttribute('aria-valuetext', freshnessScore === null ? 'Score unavailable' : `${freshnessScore} out of 100`);
-  updateDateEl.textContent = freshness.updateDate
-    ? `${freshness.updateDateSource === 'updated' ? 'Last updated' : 'No update date found; using publication date'}: ${formatDate(freshness.updateDate, 'unavailable')}`
-    : 'No valid update date available';
-  updateStatusBadge(freshnessStatusEl, freshness.status, {
-    fresh: localRecency ? (freshness.updateDateSource === 'updated' ? 'Recently updated' : 'Recently published') : 'Current',
-    stale: localRecency ? (freshness.updateDateSource === 'updated' ? 'Older update' : 'Older publication') : 'Possibly old',
-    unknown: localRecency ? 'No date' : 'Unclear'
-  });
-  factDateEl.textContent = freshness.factDate
-    ? `Estimated event date: ${formatDate(freshness.factDate, 'unavailable')}`
-    : localRecency
-      ? 'Underlying event date is not assessed locally.'
-      : 'Estimated event date unavailable';
-  freshnessExplanationEl.textContent = freshness.explanation || 'There is not enough information to explain this assessment.';
-  analysisSourceEl.textContent = analysisSource === 'gemini'
-    ? 'Freshness and theme assessment by Gemini AI.'
-    : analysisSource === 'local'
-      ? 'Local analysis using publication date and article text.'
-      : analysisSource === 'local-fallback'
-        ? 'Gemini was unavailable; showing local analysis instead.'
-    : analysisSource === 'mock'
-      ? 'Demo fixture assessment; add a Gemini API key to use LLM analysis.'
-      : analysisSource === 'heuristic'
-        ? 'Local heuristic assessment; add a Gemini API key to use LLM analysis.'
-        : 'Analysis source not recorded. Reload the page to run the updated assessment.';
-
   const reliability = state.analysis.reliability || {};
+
   const topics = Array.isArray(state.analysis.topics) ? state.analysis.topics : [];
   const storyIdentifier = state.article?.canonicalUrl || state.article?.url || state.article?.title || null;
 
@@ -140,8 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         canonicalUrl: storyIdentifier,
         title: state.article?.title || 'Untitled article',
         domain: state.article?.domain || 'Unknown domain',
-        addedAt: Date.now(),
-        freshnessStatus: freshness.status || 'unknown'
+        addedAt: Date.now()
       });
     }
 
@@ -155,22 +130,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     topicsListEl.replaceChildren();
 
     if (!topics.length) {
-      const emptyItem = document.createElement('li');
+      const emptyItem = document.createElement('div');
+      emptyItem.className = 'topics-empty';
       emptyItem.textContent = 'No themes were identified.';
       topicsListEl.append(emptyItem);
       return;
     }
 
-    topics.slice(0, 5).forEach((topic) => {
+    topics.slice(0, 8).forEach((topic) => {
       const label = String(topic.label || '').trim();
       if (!label) return;
 
       const isFollowing = followedThemes.some((theme) => theme.toLowerCase() === label.toLowerCase());
-      const item = document.createElement('li');
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'follow-theme-button';
-      button.textContent = `${isFollowing ? 'Following' : 'Follow'}: ${label}`;
+      button.textContent = label;
       button.setAttribute('aria-pressed', String(isFollowing));
       button.addEventListener('click', async () => {
         const latest = await chrome.storage.local.get(['followed-themes']);
@@ -181,8 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await chrome.storage.local.set({ 'followed-themes': nextThemes });
         await refreshThemeState();
       });
-      item.append(button);
-      topicsListEl.append(item);
+      topicsListEl.append(button);
     });
   };
 

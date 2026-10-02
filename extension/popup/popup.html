@@ -30,31 +30,12 @@
           <p id="publishDate"></p>
         </div>
 
-        <section class="panel freshness-panel">
-          <div class="panel-header">
-            <h3>Freshness check</h3>
-            <span id="freshnessStatus" class="status-badge"></span>
-          </div>
-          <div class="freshness-score">
-            <div class="freshness-score-label">
-              <span class="eyebrow">Update recency</span>
-              <strong><span id="freshnessScore">—</span><span class="score-denominator">/100</span></strong>
-            </div>
-            <progress id="freshnessProgress" max="100" value="0" aria-label="Article update recency score"></progress>
-          </div>
-          <p id="summary"></p>
-          <p id="updateDate"></p>
-          <p id="factDate"></p>
-          <p id="freshnessExplanation"></p>
-          <p id="analysisSource" class="analysis-source"></p>
-        </section>
-
         <section class="panel follow-panel">
           <h3>Keep up with this reporting</h3>
           <button id="followStoryButton" class="follow-story-button" type="button" aria-pressed="false">Follow this story</button>
           <p id="alertStatus" class="muted" aria-live="polite"></p>
           <h4>Follow a theme</h4>
-          <ul id="topicsList"></ul>
+          <div id="topicsList" class="topics-list"></div>
         </section>
 
         <section class="panel">

@@ -114,7 +114,7 @@ Use `chrome.action.setBadgeText` and `chrome.action.setBadgeBackgroundColor`, sc
 
 On click, show:
 - Article title + detected publish date.
-- **Freshness section**: the "fact date" the model extracted (if different from publish date) and a one-line explanation.
+- **Freshness section**: show the latest update date, preferring JSON-LD `dateModified`, `article:modified_time`, `og:updated_time`, `last-modified`, or `time[itemprop="dateModified"]`, alongside the publication date for comparison. Also show the age in days and the 0–100 update-recency score. If no update date is available, label the publication date as the date used for the estimate; if neither date is available, say the update age could not be determined. Include a one-line explanation, and distinguish this recency estimate from verification that the article's facts are current.
 - **Reliability section**: a 0–100 score plus 1–2 sentence rationale, and the domain it was scored against.
 - **Topics section**: up to 3–5 most relevant themes extracted from the article.
 - **Keep Me Posted section**: a merged section that includes the freshness summary, the Add alert CTA, and the follow-up theme buttons.
